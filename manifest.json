@@ -3,6 +3,9 @@
   "description": "Parse and display information from iCal links",
   "version": "1.0",
   "manifest_version": 3,
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "http://*/*",
     "https://*/*"

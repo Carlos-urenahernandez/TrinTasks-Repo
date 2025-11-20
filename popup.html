@@ -7,13 +7,21 @@
 </head>
 <body>
   <div class="container">
-    <h1>iCal Parser</h1>
-    
+    <div class="header">
+      <h1>TrinTasks <span id="eventCount" style="font-size: 14px; color: #6b7280;"></span></h1>
+      <div id="viewToggle" class="view-toggle hidden">
+        <button id="toggleBtn" class="toggle-btn">
+          <span id="toggleIcon">📋</span>
+          <span id="toggleText">List View</span>
+        </button>
+      </div>
+    </div>
+
     <div class="input-section">
       <label for="icalLink">Enter iCal Link:</label>
-      <input 
-        type="text" 
-        id="icalLink" 
+      <input
+        type="text"
+        id="icalLink"
         placeholder="webcal://... or https://example.com/calendar.ics"
         required
       >
@@ -24,9 +32,31 @@
 
     <div id="errorMessage" class="error hidden"></div>
 
-    <div id="eventsList" class="events-list hidden">
-      <h2>Events</h2>
-      <div id="eventsContainer"></div>
+    <div id="mainContent" class="main-content hidden">
+      <div id="calendarView" class="calendar-view">
+        <div class="calendar-header">
+          <button id="prevMonth" class="nav-btn">‹</button>
+          <h2 id="calendarTitle">Calendar</h2>
+          <button id="nextMonth" class="nav-btn">›</button>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-weekdays">
+            <div class="weekday">Sun</div>
+            <div class="weekday">Mon</div>
+            <div class="weekday">Tue</div>
+            <div class="weekday">Wed</div>
+            <div class="weekday">Thu</div>
+            <div class="weekday">Fri</div>
+            <div class="weekday">Sat</div>
+          </div>
+          <div id="calendarDays" class="calendar-days"></div>
+        </div>
+      </div>
+
+      <div id="eventsList" class="events-list hidden">
+        <h2>Events</h2>
+        <div id="eventsContainer"></div>
+      </div>
     </div>
 
     <div id="noData" class="no-data">
