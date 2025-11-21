@@ -371,10 +371,6 @@ class UIController {
     this.eventsList = document.getElementById('eventsList');
     this.eventsContainer = document.getElementById('eventsContainer');
     this.noData = document.getElementById('noData');
-    this.viewToggle = document.getElementById('viewToggle');
-    this.toggleBtn = document.getElementById('toggleBtn');
-    this.toggleIcon = document.getElementById('toggleIcon');
-    this.toggleText = document.getElementById('toggleText');
     this.calendarView = document.getElementById('calendarView');
     this.calendarTitle = document.getElementById('calendarTitle');
     this.calendarDays = document.getElementById('calendarDays');
@@ -399,12 +395,12 @@ class UIController {
     this.newTagColorInput = document.getElementById('newTagColor');
     this.addTagBtn = document.getElementById('addTagBtn');
 
-    this.currentView = 'calendar'; // 'list' or 'calendar' - default to calendar
     this.events = [];
     this.currentMonth = new Date().getMonth();
     this.currentYear = new Date().getFullYear();
     this.savedCalendars = [];
     this.subjectTags = {};
+    this.currentFilter = 'all';
 
     this.setupEventListeners();
     this.loadSavedData();
@@ -419,9 +415,18 @@ class UIController {
         this.handleParse();
       }
     });
-    this.toggleBtn.addEventListener('click', () => this.toggleView());
     this.prevMonthBtn.addEventListener('click', () => this.navigateMonth(-1));
     this.nextMonthBtn.addEventListener('click', () => this.navigateMonth(1));
+
+    // Filter button listeners
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        this.currentFilter = e.target.dataset.filter;
+        this.applyFilter();
+      });
+    });
 
     // Settings event listeners
     this.settingsBtn.addEventListener('click', () => this.openSettings());
@@ -519,13 +524,10 @@ class UIController {
     this.inputSection.classList.add('hidden');
     this.noData.classList.add('hidden');
     this.mainContent.classList.remove('hidden');
-    this.viewToggle.classList.remove('hidden');
 
-    // Show calendar view by default
-    this.currentView = 'calendar';
-    this.calendarView.classList.remove('hidden');
-    this.eventsList.classList.add('hidden');
+    // Show both calendar and list views
     this.renderCalendar();
+    this.applyFilter();
   }
 
   createEventElement(event) {
@@ -713,24 +715,45 @@ class UIController {
 
   hideEventsList() {
     this.mainContent.classList.add('hidden');
-    this.eventsList.classList.add('hidden');
-    this.calendarView.classList.add('hidden');
   }
 
-  toggleView() {
-    if (this.currentView === 'calendar') {
-      this.currentView = 'list';
-      this.calendarView.classList.add('hidden');
-      this.eventsList.classList.remove('hidden');
-      this.toggleIcon.textContent = '📅';
-      this.toggleText.textContent = 'Calendar View';
-    } else {
-      this.currentView = 'calendar';
-      this.eventsList.classList.add('hidden');
-      this.calendarView.classList.remove('hidden');
-      this.toggleIcon.textContent = '📋';
-      this.toggleText.textContent = 'List View';
-      this.renderCalendar();
+  applyFilter() {
+    if (!this.events || this.events.length === 0) return;
+
+    let filteredEvents = [...this.events];
+
+    // Apply filter
+    if (this.currentFilter === 'upcoming') {
+      filteredEvents = filteredEvents.filter(event => {
+        const dueTimestamp = ICalParser.iCalDateToTimestamp(event.dueRaw || event.startRaw);
+        return !event.isCompleted && dueTimestamp >= Date.now();
+      });
+    } else if (this.currentFilter === 'completed') {
+      filteredEvents = filteredEvents.filter(event => event.isCompleted);
+    }
+
+    // Sort events by date (upcoming first)
+    filteredEvents.sort((a, b) => {
+      const dateA = a.dueRaw || a.startRaw || a.dueTime || a.startTime;
+      const dateB = b.dueRaw || b.startRaw || b.dueTime || b.startTime;
+      const ta = ICalParser.iCalDateToTimestamp(dateA);
+      const tb = ICalParser.iCalDateToTimestamp(dateB);
+      return ta - tb; // ascending for chronological order
+    });
+
+    // Clear and repopulate the events container
+    this.eventsContainer.innerHTML = '';
+    filteredEvents.forEach(event => {
+      const eventElement = this.createEventElement(event);
+      this.eventsContainer.appendChild(eventElement);
+    });
+
+    // Show message if no events match filter
+    if (filteredEvents.length === 0) {
+      const noEventsMsg = document.createElement('div');
+      noEventsMsg.className = 'no-events-message';
+      noEventsMsg.textContent = `No ${this.currentFilter === 'completed' ? 'completed' : 'upcoming'} assignments`;
+      this.eventsContainer.appendChild(noEventsMsg);
     }
   }
 
@@ -1122,12 +1145,9 @@ class UIController {
     // Save updated completion status
     await chrome.storage.local.set({ completedAssignments });
 
-    // Re-render the current view
-    if (this.currentView === 'calendar') {
-      this.renderCalendar();
-    } else {
-      this.displayEvents(this.events);
-    }
+    // Re-render both views
+    this.renderCalendar();
+    this.applyFilter();
   }
 
   async loadSavedData() {

@@ -8,15 +8,9 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>TrinTasks <span id="eventCount" style="font-size: 14px; color: #6b7280;"></span></h1>
+      <h1>TrinTasks <span id="eventCount" style="font-size: 14px; color: rgba(255,255,255,0.9);"></span></h1>
       <div class="header-buttons">
         <button id="settingsBtn" class="settings-btn" title="Settings">⚙️</button>
-        <div id="viewToggle" class="view-toggle hidden">
-          <button id="toggleBtn" class="toggle-btn">
-            <span id="toggleIcon">📋</span>
-            <span id="toggleText">List View</span>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -36,29 +30,38 @@
     <div id="errorMessage" class="error hidden"></div>
 
     <div id="mainContent" class="main-content hidden">
-      <div id="calendarView" class="calendar-view">
-        <div class="calendar-header">
-          <button id="prevMonth" class="nav-btn">‹</button>
-          <h2 id="calendarTitle">Calendar</h2>
-          <button id="nextMonth" class="nav-btn">›</button>
-        </div>
-        <div class="calendar-grid">
-          <div class="calendar-weekdays">
-            <div class="weekday">Sun</div>
-            <div class="weekday">Mon</div>
-            <div class="weekday">Tue</div>
-            <div class="weekday">Wed</div>
-            <div class="weekday">Thu</div>
-            <div class="weekday">Fri</div>
-            <div class="weekday">Sat</div>
+      <div class="combined-view">
+        <div id="calendarView" class="calendar-view">
+          <div class="calendar-header">
+            <button id="prevMonth" class="nav-btn">‹</button>
+            <h2 id="calendarTitle">Calendar</h2>
+            <button id="nextMonth" class="nav-btn">›</button>
           </div>
-          <div id="calendarDays" class="calendar-days"></div>
+          <div class="calendar-grid">
+            <div class="calendar-weekdays">
+              <div class="weekday">Sun</div>
+              <div class="weekday">Mon</div>
+              <div class="weekday">Tue</div>
+              <div class="weekday">Wed</div>
+              <div class="weekday">Thu</div>
+              <div class="weekday">Fri</div>
+              <div class="weekday">Sat</div>
+            </div>
+            <div id="calendarDays" class="calendar-days"></div>
+          </div>
         </div>
-      </div>
 
-      <div id="eventsList" class="events-list hidden">
-        <h2>Events</h2>
-        <div id="eventsContainer"></div>
+        <div id="eventsList" class="events-list">
+          <div class="events-list-header">
+            <h2>Upcoming Assignments</h2>
+            <div class="filter-buttons">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+              <button class="filter-btn" data-filter="completed">Completed</button>
+            </div>
+          </div>
+          <div id="eventsContainer" class="events-container"></div>
+        </div>
       </div>
     </div>
 
