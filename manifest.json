@@ -4,7 +4,9 @@
   "version": "1.0",
   "manifest_version": 3,
   "permissions": [
-    "storage"
+    "storage",
+    "notifications",
+    "alarms"
   ],
   "host_permissions": [
     "http://*/*",
@@ -13,5 +15,8 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "iCal Parser"
+  },
+  "background": {
+    "service_worker": "background.js"
   }
 }

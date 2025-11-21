@@ -98,6 +98,33 @@
             <input type="checkbox" id="autoRefresh">
             Auto-refresh calendar every hour
           </label>
+          <label style="margin-top: 10px; display: block;">
+            <input type="checkbox" id="enableReminders" checked>
+            Enable assignment reminders
+          </label>
+          <div style="margin-top: 10px; margin-left: 24px;">
+            <label for="reminderHours" style="font-size: 13px; color: #6b7280;">Remind me before:</label>
+            <select id="reminderHours" style="margin-left: 8px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+              <option value="1">1 hour</option>
+              <option value="2">2 hours</option>
+              <option value="6">6 hours</option>
+              <option value="12">12 hours</option>
+              <option value="24" selected>24 hours</option>
+              <option value="48">2 days</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <label>Subject Tags & Colors:</label>
+          <div id="subjectTags" class="subject-tags-container">
+            <!-- Subject tags will be added here dynamically -->
+          </div>
+          <div class="add-tag-row">
+            <input type="text" id="newTagName" placeholder="Subject name (e.g., Biology)">
+            <input type="color" id="newTagColor" value="#3b82f6">
+            <button id="addTagBtn" class="btn-primary">Add Tag</button>
+          </div>
         </div>
 
         <div class="settings-footer">

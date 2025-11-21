@@ -393,15 +393,23 @@ class UIController {
     this.saveSettingsBtn = document.getElementById('saveSettings');
     this.cancelSettingsBtn = document.getElementById('cancelSettings');
 
+    // Subject tags elements
+    this.subjectTagsDiv = document.getElementById('subjectTags');
+    this.newTagNameInput = document.getElementById('newTagName');
+    this.newTagColorInput = document.getElementById('newTagColor');
+    this.addTagBtn = document.getElementById('addTagBtn');
+
     this.currentView = 'calendar'; // 'list' or 'calendar' - default to calendar
     this.events = [];
     this.currentMonth = new Date().getMonth();
     this.currentYear = new Date().getFullYear();
     this.savedCalendars = [];
+    this.subjectTags = {};
 
     this.setupEventListeners();
     this.loadSavedData();
     this.loadSettings();
+    this.loadSubjectTags();
   }
 
   setupEventListeners() {
@@ -422,6 +430,7 @@ class UIController {
     this.cancelSettingsBtn.addEventListener('click', () => this.closeSettings());
     this.addCalendarBtn.addEventListener('click', () => this.addCalendar());
     this.clearDataBtn.addEventListener('click', () => this.clearAllData());
+    this.addTagBtn.addEventListener('click', () => this.addSubjectTag());
 
     // Close settings when clicking outside
     this.settingsPanel.addEventListener('click', (e) => {
@@ -522,6 +531,33 @@ class UIController {
   createEventElement(event) {
     const eventDiv = document.createElement('div');
     eventDiv.className = 'event';
+    if (event.isCompleted) {
+      eventDiv.classList.add('completed');
+    }
+
+    // Apply subject color if available
+    const subjectTag = this.getSubjectFromTitle(event.title);
+    if (subjectTag) {
+      eventDiv.style.borderLeftWidth = '4px';
+      eventDiv.style.borderLeftColor = subjectTag.color;
+      eventDiv.setAttribute('data-subject', subjectTag.name);
+    }
+
+    // Create header with checkbox for assignments
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'event-header';
+
+    if (event.isAssignment) {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'event-checkbox';
+      checkbox.checked = event.isCompleted || false;
+      checkbox.addEventListener('change', () => this.toggleAssignmentComplete(event));
+      headerDiv.appendChild(checkbox);
+    }
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'event-title';
 
     let titleHtml = this.escapeHtml(event.title);
 
@@ -544,23 +580,26 @@ class UIController {
     }
 
     // Add completed status indicator
-    if (event.status === 'COMPLETED' || event.completedTime) {
-      titleHtml = `✅ <span style="text-decoration: line-through; color: #6b7280;">${typeIcon}${priorityIcon}${titleHtml}</span>`;
+    if (event.isCompleted) {
+      titleHtml = `<span style="text-decoration: line-through; color: #6b7280;">${typeIcon}${priorityIcon}${titleHtml}</span>`;
     } else {
       titleHtml = `${typeIcon}${priorityIcon}${titleHtml}`;
     }
 
     // Add progress indicator if available
-    if (event.percentComplete !== undefined && event.percentComplete < 100 && !event.completedTime) {
+    if (event.percentComplete !== undefined && event.percentComplete < 100 && !event.isCompleted) {
       titleHtml += ` <span style="font-size: 11px; color: #6b7280;">(${event.percentComplete}%)</span>`;
     }
 
-    let html = `<div class="event-title">${titleHtml}</div>`;
-    html += '<div class="event-details">';
+    titleDiv.innerHTML = titleHtml;
+    headerDiv.appendChild(titleDiv);
+    eventDiv.appendChild(headerDiv);
+
+    let html = '<div class="event-details">';
 
     // Show DUE date if available (for tasks/todos)
     if (event.dueTime) {
-      const isOverdue = !event.completedTime && event.dueRaw &&
+      const isOverdue = !event.isCompleted && event.dueRaw &&
                        ICalParser.iCalDateToTimestamp(event.dueRaw) < Date.now();
       const dueStyle = isOverdue ? 'color: #dc2626; font-weight: 700;' : 'color: #dc2626; font-weight: 600;';
       const dueLabel = isOverdue ? '⚠️ OVERDUE:' : 'Due:';
@@ -572,10 +611,18 @@ class UIController {
     }
 
     // Show completed date if available
-    if (event.completedTime) {
+    if (event.isCompleted && event.completedDate) {
+      const completedDate = new Date(event.completedDate);
+      const formattedDate = completedDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
       html += `<div class="event-detail">
         <span class="event-detail-label">Completed:</span>
-        <span class="event-detail-value" style="color: #10b981;">${event.completedTime}</span>
+        <span class="event-detail-value" style="color: #10b981;">✓ ${formattedDate}</span>
       </div>`;
     }
 
@@ -627,7 +674,11 @@ class UIController {
       html += `<div class="event-description">${this.escapeHtml(event.description)}</div>`;
     }
 
-    eventDiv.innerHTML = html;
+    // Add the details HTML to the eventDiv
+    const detailsContainer = document.createElement('div');
+    detailsContainer.innerHTML = html;
+    eventDiv.appendChild(detailsContainer);
+
     return eventDiv;
   }
 
@@ -1021,6 +1072,20 @@ class UIController {
 
   async saveToStorage(url, events) {
     try {
+      // Load existing completed assignments
+      const data = await chrome.storage.local.get(['completedAssignments']);
+      const completedAssignments = data.completedAssignments || {};
+
+      // Merge completion status with events
+      events = events.map(event => {
+        const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+        if (completedAssignments[eventId]) {
+          event.isCompleted = true;
+          event.completedDate = completedAssignments[eventId].completedDate;
+        }
+        return event;
+      });
+
       await chrome.storage.local.set({
         icalUrl: url,
         events: events,
@@ -1029,6 +1094,39 @@ class UIController {
       console.log('Data saved to storage');
     } catch (error) {
       console.error('Failed to save to storage:', error);
+    }
+  }
+
+  async toggleAssignmentComplete(event) {
+    const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+
+    // Load existing completed assignments
+    const data = await chrome.storage.local.get(['completedAssignments']);
+    const completedAssignments = data.completedAssignments || {};
+
+    if (event.isCompleted) {
+      // Mark as incomplete
+      delete completedAssignments[eventId];
+      event.isCompleted = false;
+      event.completedDate = null;
+    } else {
+      // Mark as complete
+      completedAssignments[eventId] = {
+        completedDate: new Date().toISOString(),
+        title: event.title
+      };
+      event.isCompleted = true;
+      event.completedDate = new Date().toISOString();
+    }
+
+    // Save updated completion status
+    await chrome.storage.local.set({ completedAssignments });
+
+    // Re-render the current view
+    if (this.currentView === 'calendar') {
+      this.renderCalendar();
+    } else {
+      this.displayEvents(this.events);
     }
   }
 
@@ -1072,6 +1170,7 @@ class UIController {
     // Load current settings
     this.settingsIcalLink.value = this.icalLinkInput.value;
     this.loadSavedCalendars();
+    this.displaySubjectTags();
     this.settingsPanel.classList.remove('hidden');
   }
 
@@ -1189,6 +1288,94 @@ class UIController {
         this.handleParse();
       }
     }, 60 * 60 * 1000); // 1 hour
+  }
+
+  // Subject tag methods
+  async loadSubjectTags() {
+    const data = await chrome.storage.local.get(['subjectTags']);
+    this.subjectTags = data.subjectTags || {
+      'BIOLOGY': '#10b981',
+      'COMPUTER SCIENCE': '#3b82f6',
+      'ENGLISH': '#f59e0b',
+      'MATH': '#ef4444',
+      'HISTORY': '#8b5cf6'
+    };
+    this.displaySubjectTags();
+  }
+
+  displaySubjectTags() {
+    this.subjectTagsDiv.innerHTML = '';
+    Object.entries(this.subjectTags).forEach(([name, color]) => {
+      const tagDiv = document.createElement('div');
+      tagDiv.className = 'subject-tag-item';
+
+      const colorIndicator = document.createElement('div');
+      colorIndicator.className = 'tag-color-indicator';
+      colorIndicator.style.backgroundColor = color;
+
+      const tagName = document.createElement('span');
+      tagName.className = 'tag-name';
+      tagName.textContent = name;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-tag';
+      deleteBtn.textContent = '×';
+      deleteBtn.addEventListener('click', () => this.deleteSubjectTag(name));
+
+      tagDiv.appendChild(colorIndicator);
+      tagDiv.appendChild(tagName);
+      tagDiv.appendChild(deleteBtn);
+      this.subjectTagsDiv.appendChild(tagDiv);
+    });
+  }
+
+  async addSubjectTag() {
+    const name = this.newTagNameInput.value.trim().toUpperCase();
+    const color = this.newTagColorInput.value;
+
+    if (!name) {
+      alert('Please enter a subject name');
+      return;
+    }
+
+    this.subjectTags[name] = color;
+    await chrome.storage.local.set({ subjectTags: this.subjectTags });
+    this.displaySubjectTags();
+
+    // Clear inputs
+    this.newTagNameInput.value = '';
+    this.newTagColorInput.value = '#3b82f6';
+
+    // Re-render events to apply new tag
+    if (this.events.length > 0) {
+      this.displayEvents(this.events);
+    }
+  }
+
+  async deleteSubjectTag(name) {
+    delete this.subjectTags[name];
+    await chrome.storage.local.set({ subjectTags: this.subjectTags });
+    this.displaySubjectTags();
+
+    // Re-render events
+    if (this.events.length > 0) {
+      this.displayEvents(this.events);
+    }
+  }
+
+  getSubjectFromTitle(title) {
+    // Extract subject from title (e.g., "ADV. BIOLOGY - B:" -> "BIOLOGY")
+    const subjectMatch = title.match(/(?:ADV\.\s+)?([A-Z][A-Z\s]+?)(?:\s*-\s*[A-Z\d])?:/);
+    if (subjectMatch) {
+      const subject = subjectMatch[1].trim();
+      // Check if we have a tag for this subject
+      for (const tag in this.subjectTags) {
+        if (subject.includes(tag) || tag.includes(subject)) {
+          return { name: tag, color: this.subjectTags[tag] };
+        }
+      }
+    }
+    return null;
   }
 }
 
