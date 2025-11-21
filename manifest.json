@@ -1,7 +1,7 @@
 {
-  "name": "iCal Parser",
-  "description": "Parse and display information from iCal links",
-  "version": "1.0",
+  "name": "TrinTasks",
+  "description": "Manage Trinity School assignments and calendar events",
+  "version": "1.1",
   "manifest_version": 3,
   "permissions": [
     "storage",
