@@ -6,7 +6,7 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f5f5f7;
   color: #1f2937;
   margin: 0;
   padding: 0;
@@ -14,15 +14,13 @@ body {
 }
 
 .container {
-  width: 800px;
-  height: 600px;
+  width: 1100px;
+  height: 750px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #ffffff;
   border: none;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -46,27 +44,29 @@ h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px 32px;
+  background: #2c3e50;
   color: white;
-  border-radius: 20px 20px 0 0;
+  border-radius: 12px 12px 0 0;
 }
 
 .header h1 {
   color: white;
   font-weight: 700;
+  font-size: 28px;
   letter-spacing: -0.5px;
 }
 
 .header #eventCount {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 400;
 }
 
 .input-section {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px 24px;
+  padding: 24px 32px;
   background: #f8f9fa;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -82,9 +82,9 @@ h2 {
 
 .combined-view {
   display: flex;
-  gap: 20px;
+  gap: 24px;
   width: 100%;
-  padding: 20px;
+  padding: 24px;
   height: 100%;
 }
 
@@ -179,14 +179,14 @@ button:active {
 }
 
 .no-data {
-  padding: 40px 20px;
+  padding: 60px 30px;
   text-align: center;
   color: #9ca3af;
   font-style: italic;
-  font-size: 15px;
+  font-size: 16px;
   background: white;
   border-radius: 12px;
-  margin: 20px;
+  margin: 32px;
 }
 
 .event {
@@ -282,20 +282,20 @@ button:active {
 }
 
 .settings-btn {
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .settings-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* View Toggle */
@@ -333,13 +333,13 @@ button:active {
 
 /* Calendar View */
 .calendar-view {
-  flex: 0 0 55%;
+  flex: 0 0 60%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: #f9fafb;
   border-radius: 12px;
-  padding: 16px;
+  padding: 20px;
 }
 
 .calendar-header {
@@ -354,6 +354,8 @@ button:active {
   margin: 0;
   flex: 1;
   text-align: center;
+  font-size: 20px;
+  color: #2c3e50;
 }
 
 .nav-btn {
@@ -415,13 +417,13 @@ button:active {
 
 .calendar-day {
   background: #fff;
-  padding: 6px;
+  padding: 8px;
   position: relative;
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  min-height: 60px;
-  border-radius: 6px;
+  min-height: 75px;
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
 }
 
@@ -590,7 +592,7 @@ button:active {
 }
 
 .events-list-header {
-  padding: 16px;
+  padding: 20px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
   display: flex;
@@ -600,7 +602,8 @@ button:active {
 
 .events-list-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 600;
   color: #1f2937;
 }
 
@@ -635,7 +638,7 @@ button:active {
 .events-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 20px;
 }
 
 .no-events-message {
