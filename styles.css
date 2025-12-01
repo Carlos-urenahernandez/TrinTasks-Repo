@@ -82,6 +82,14 @@ h2 {
   border-bottom: 1px solid #e5e7eb;
 }
 
+#mainView {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .main-content {
   flex: 1;
   display: flex;
@@ -822,91 +830,34 @@ button:active {
   font-style: italic;
 }
 
-/* Settings Panel */
-.settings-panel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100000;
-  animation: fadeIn 0.2s ease;
+/* Settings View */
+.settings-view {
+  flex: 1;
+  overflow-y: auto;
+  background: #f5f5f7;
 }
 
-.settings-panel.hidden {
+.settings-view.hidden {
   display: none !important;
 }
 
-.settings-modal {
+.settings-view .settings-content {
+  padding: 12px;
+}
+
+.settings-view .settings-section {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
-  width: 90%;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  animation: slideUp 0.3s ease;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.settings-header {
-  background: #2c3e50;
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 16px 16px 0 0;
+.settings-view .settings-section:last-child {
+  margin-bottom: 0;
 }
 
-.settings-header h2 {
-  margin: 0;
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  font-size: 20px;
-  color: white;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.05);
-}
-
-.settings-content {
-  padding: 0;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.settings-section {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.settings-section:last-child {
-  border-bottom: none;
-}
-
-.settings-section-title {
+.settings-view .settings-section-title {
   font-size: 13px;
   font-weight: 700;
   color: #6b7280;
@@ -915,15 +866,15 @@ button:active {
   margin: 0 0 12px 0;
 }
 
-.settings-group {
+.settings-view .settings-group {
   margin-bottom: 12px;
 }
 
-.settings-group:last-child {
+.settings-view .settings-group:last-child {
   margin-bottom: 0;
 }
 
-.settings-group > label {
+.settings-view .settings-group > label {
   display: block;
   margin-bottom: 6px;
   font-weight: 600;
@@ -931,7 +882,7 @@ button:active {
   font-size: 13px;
 }
 
-.settings-group input[type="text"] {
+.settings-view .settings-group input[type="text"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #d1d5db;
@@ -941,28 +892,28 @@ button:active {
   background: #f9fafb;
 }
 
-.settings-group input[type="text"]:focus {
+.settings-view .settings-group input[type="text"]:focus {
   outline: none;
   border-color: #3b82f6;
   background: white;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.settings-buttons-row {
+.settings-view .settings-buttons-row {
   display: flex;
   gap: 8px;
 }
 
-.settings-buttons-row .btn-primary,
-.settings-buttons-row .btn-danger {
+.settings-view .settings-buttons-row .btn-primary,
+.settings-view .settings-buttons-row .btn-danger {
   flex: 1;
   padding: 8px 12px;
   font-size: 13px;
   margin: 0;
 }
 
-/* Checkbox styling */
-.checkbox-label {
+/* Settings Checkbox styling */
+.settings-view .checkbox-label {
   display: flex !important;
   align-items: center;
   gap: 10px;
@@ -971,7 +922,7 @@ button:active {
   margin: 0 !important;
 }
 
-.checkbox-label input[type="checkbox"] {
+.settings-view .checkbox-label input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin: 0;
@@ -979,13 +930,13 @@ button:active {
   cursor: pointer;
 }
 
-.checkbox-label span {
+.settings-view .checkbox-label span {
   font-weight: 500;
   color: #374151;
   font-size: 14px;
 }
 
-.reminder-options {
+.settings-view .reminder-options {
   margin-top: 8px;
   margin-left: 28px;
   display: flex;
@@ -993,14 +944,14 @@ button:active {
   gap: 8px;
 }
 
-.reminder-options label {
+.settings-view .reminder-options label {
   font-size: 13px;
   color: #6b7280;
   font-weight: 500;
   margin: 0;
 }
 
-.reminder-options select {
+.settings-view .reminder-options select {
   padding: 6px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -1009,12 +960,12 @@ button:active {
   cursor: pointer;
 }
 
-.reminder-options select:focus {
+.settings-view .reminder-options select:focus {
   outline: none;
   border-color: #3b82f6;
 }
 
-.saved-calendars {
+.settings-view .saved-calendars {
   max-height: 150px;
   overflow-y: auto;
   border: 1px solid #e5e7eb;
@@ -1023,7 +974,7 @@ button:active {
   background: #f9fafb;
 }
 
-.saved-calendar-item {
+.settings-view .saved-calendar-item {
   padding: 8px;
   background: white;
   border: 1px solid #d1d5db;
@@ -1034,18 +985,18 @@ button:active {
   align-items: center;
 }
 
-.saved-calendar-item:last-child {
+.settings-view .saved-calendar-item:last-child {
   margin-bottom: 0;
 }
 
-.calendar-url {
+.settings-view .calendar-url {
   font-size: 12px;
   color: #4b5563;
   word-break: break-all;
   flex: 1;
 }
 
-.delete-calendar {
+.settings-view .delete-calendar {
   background: #ef4444;
   color: white;
   border: none;
@@ -1056,7 +1007,7 @@ button:active {
   margin-left: 8px;
 }
 
-.delete-calendar:hover {
+.settings-view .delete-calendar:hover {
   background: #dc2626;
 }
 
@@ -1115,22 +1066,6 @@ button:active {
   box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
 }
 
-.settings-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  background: #f9fafb;
-  border-radius: 0 0 16px 16px;
-}
-
-.settings-footer .btn-primary,
-.settings-footer .btn-secondary {
-  margin: 0;
-  padding: 10px 20px;
-}
-
 .btn-small {
   background: #3b82f6;
   color: white;
@@ -1147,19 +1082,18 @@ button:active {
   background: #2563eb;
 }
 
-/* Subject Tags */
-.subject-tags-container {
-  max-height: 120px;
+/* Subject Tags (Settings View) */
+.settings-view .subject-tags-container {
+  max-height: 200px;
   overflow-y: auto;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 6px;
   background: #f9fafb;
-  margin-bottom: 10px;
 }
 
-.subject-tags-container:empty::before {
-  content: 'No subject tags yet';
+.settings-view .subject-tags-container:empty::before {
+  content: 'No subjects found';
   display: block;
   padding: 12px;
   text-align: center;
@@ -1168,82 +1102,44 @@ button:active {
   font-style: italic;
 }
 
-.subject-tag-item {
+.settings-view .subject-tag-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: 10px;
+  padding: 8px 10px;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   margin-bottom: 4px;
 }
 
-.subject-tag-item:last-child {
+.settings-view .subject-tag-item:last-child {
   margin-bottom: 0;
 }
 
-.tag-color-indicator {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  flex-shrink: 0;
+.settings-view .tag-color-input {
+  display: none;
 }
 
-.tag-name {
+.settings-view .tag-color-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-view .tag-color-indicator:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.settings-view .tag-name {
   flex: 1;
   font-weight: 500;
   color: #374151;
-  font-size: 13px;
+  font-size: 14px;
 }
 
-.delete-tag {
-  background: #fef2f2;
-  border: none;
-  color: #ef4444;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.delete-tag:hover {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.add-tag-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.add-tag-row input[type="text"] {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  background: #f9fafb;
-}
-
-.add-tag-row input[type="text"]:focus {
-  outline: none;
-  border-color: #3b82f6;
-  background: white;
-}
-
-.add-tag-row input[type="color"] {
-  width: 36px;
-  height: 36px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  cursor: pointer;
-  padding: 2px;
-}
