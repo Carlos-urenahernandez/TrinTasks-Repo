@@ -8,13 +8,15 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>TrinTasks <span id="eventCount" style="font-size: 14px; color: rgba(255,255,255,0.9);"></span></h1>
+      <h1 id="headerTitle">TrinTasks <span id="eventCount" style="font-size: 14px; color: rgba(255,255,255,0.9);"></span></h1>
       <div class="header-buttons">
         <button id="settingsBtn" class="settings-btn" title="Settings">⚙️</button>
       </div>
     </div>
 
-    <div class="input-section">
+    <!-- Main View -->
+    <div id="mainView">
+      <div class="input-section">
       <label for="icalLink">Enter iCal Link:</label>
       <input
         type="text"
@@ -65,84 +67,70 @@
       </div>
     </div>
 
-    <div id="noData" class="no-data">
-      Enter an iCal link and click "Parse iCal" to see events
+      <div id="noData" class="no-data">
+        Enter an iCal link and click "Parse iCal" to see events
+      </div>
     </div>
 
-    <!-- Settings Panel -->
-    <div id="settingsPanel" class="settings-panel hidden">
-      <div class="settings-modal">
-        <div class="settings-header">
-          <h2>Settings</h2>
-          <button id="closeSettings" class="close-btn">×</button>
+    <!-- Settings View -->
+    <div id="settingsView" class="settings-view hidden">
+      <div class="settings-content">
+        <!-- Calendar Source Section -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">Calendar Source</h3>
+          <div class="settings-group">
+            <label for="settingsIcalLink">iCal Link</label>
+            <input
+              type="text"
+              id="settingsIcalLink"
+              placeholder="webcal://... or https://example.com/calendar.ics"
+            >
+          </div>
+          <div class="settings-group">
+            <label>Saved Calendars</label>
+            <div id="savedCalendars" class="saved-calendars"></div>
+          </div>
+          <div class="settings-group settings-buttons-row">
+            <button id="addCalendarBtn" class="btn-primary">Add Calendar</button>
+            <button id="clearDataBtn" class="btn-danger">Clear All Data</button>
+          </div>
         </div>
-        <div class="settings-content">
-          <!-- Calendar Source Section -->
-          <div class="settings-section">
-            <h3 class="settings-section-title">Calendar Source</h3>
-            <div class="settings-group">
-              <label for="settingsIcalLink">iCal Link</label>
-              <input
-                type="text"
-                id="settingsIcalLink"
-                placeholder="webcal://... or https://example.com/calendar.ics"
-              >
-            </div>
-            <div class="settings-group">
-              <label>Saved Calendars</label>
-              <div id="savedCalendars" class="saved-calendars"></div>
-            </div>
-            <div class="settings-group settings-buttons-row">
-              <button id="addCalendarBtn" class="btn-primary">Add Calendar</button>
-              <button id="clearDataBtn" class="btn-danger">Clear All Data</button>
-            </div>
-          </div>
 
-          <!-- Notifications Section -->
-          <div class="settings-section">
-            <h3 class="settings-section-title">Notifications</h3>
-            <div class="settings-group">
-              <label class="checkbox-label">
-                <input type="checkbox" id="autoRefresh">
-                <span>Auto-refresh calendar every hour</span>
-              </label>
-            </div>
-            <div class="settings-group">
-              <label class="checkbox-label">
-                <input type="checkbox" id="enableReminders">
-                <span>Enable assignment reminders</span>
-              </label>
-              <div class="reminder-options">
-                <label for="reminderHours">Remind me before:</label>
-                <select id="reminderHours">
-                  <option value="1">1 hour</option>
-                  <option value="2">2 hours</option>
-                  <option value="6">6 hours</option>
-                  <option value="12">12 hours</option>
-                  <option value="24" selected>24 hours</option>
-                  <option value="48">2 days</option>
-                </select>
-              </div>
-            </div>
+        <!-- Notifications Section -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">Notifications</h3>
+          <div class="settings-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="autoRefresh">
+              <span>Auto-refresh calendar every hour</span>
+            </label>
           </div>
-
-          <!-- Subject Tags Section -->
-          <div class="settings-section">
-            <h3 class="settings-section-title">Subject Tags</h3>
-            <div class="settings-group">
-              <div id="subjectTags" class="subject-tags-container"></div>
-              <div class="add-tag-row">
-                <input type="text" id="newTagName" placeholder="Subject name (e.g., Biology)">
-                <input type="color" id="newTagColor" value="#3b82f6">
-                <button id="addTagBtn" class="btn-small">Add</button>
-              </div>
+          <div class="settings-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="enableReminders">
+              <span>Enable assignment reminders</span>
+            </label>
+            <div class="reminder-options">
+              <label for="reminderHours">Remind me before:</label>
+              <select id="reminderHours">
+                <option value="1">1 hour</option>
+                <option value="2">2 hours</option>
+                <option value="6">6 hours</option>
+                <option value="12">12 hours</option>
+                <option value="24" selected>24 hours</option>
+                <option value="48">2 days</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <div class="settings-footer">
-          <button id="cancelSettings" class="btn-secondary">Cancel</button>
-          <button id="saveSettings" class="btn-primary">Save Settings</button>
+        <!-- Subject Tags Section -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">Subject Colors</h3>
+          <p class="settings-hint">Click a color to change it</p>
+          <div class="settings-group">
+            <div id="subjectTags" class="subject-tags-container"></div>
+          </div>
         </div>
       </div>
     </div>

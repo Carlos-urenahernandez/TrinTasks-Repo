@@ -377,10 +377,15 @@ class UIController {
     this.prevMonthBtn = document.getElementById('prevMonth');
     this.nextMonthBtn = document.getElementById('nextMonth');
 
-    // Settings elements
+    // Header elements
+    this.headerTitle = document.getElementById('headerTitle');
     this.settingsBtn = document.getElementById('settingsBtn');
-    this.settingsPanel = document.getElementById('settingsPanel');
-    this.closeSettingsBtn = document.getElementById('closeSettings');
+
+    // View elements
+    this.mainView = document.getElementById('mainView');
+    this.settingsView = document.getElementById('settingsView');
+
+    // Settings elements
     this.settingsIcalLink = document.getElementById('settingsIcalLink');
     this.savedCalendarsDiv = document.getElementById('savedCalendars');
     this.addCalendarBtn = document.getElementById('addCalendarBtn');
@@ -388,14 +393,9 @@ class UIController {
     this.autoRefreshCheckbox = document.getElementById('autoRefresh');
     this.enableRemindersCheckbox = document.getElementById('enableReminders');
     this.reminderHoursSelect = document.getElementById('reminderHours');
-    this.saveSettingsBtn = document.getElementById('saveSettings');
-    this.cancelSettingsBtn = document.getElementById('cancelSettings');
 
     // Subject tags elements
     this.subjectTagsDiv = document.getElementById('subjectTags');
-    this.newTagNameInput = document.getElementById('newTagName');
-    this.newTagColorInput = document.getElementById('newTagColor');
-    this.addTagBtn = document.getElementById('addTagBtn');
 
     this.events = [];
     this.currentMonth = new Date().getMonth();
@@ -403,6 +403,7 @@ class UIController {
     this.savedCalendars = [];
     this.subjectTags = {};
     this.currentFilter = 'all';
+    this.isSettingsView = false;
 
     this.setupEventListeners();
     this.loadSavedData();
@@ -432,19 +433,18 @@ class UIController {
 
     // Settings event listeners
     this.settingsBtn.addEventListener('click', () => this.openSettings());
-    this.closeSettingsBtn.addEventListener('click', () => this.closeSettings());
-    this.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
-    this.cancelSettingsBtn.addEventListener('click', () => this.closeSettings());
-    this.addCalendarBtn.addEventListener('click', () => this.addCalendar());
-    this.clearDataBtn.addEventListener('click', () => this.clearAllData());
-    this.addTagBtn.addEventListener('click', () => this.addSubjectTag());
-
-    // Close settings when clicking outside
-    this.settingsPanel.addEventListener('click', (e) => {
-      if (e.target === this.settingsPanel) {
+    this.headerTitle.addEventListener('click', () => {
+      if (this.isSettingsView) {
         this.closeSettings();
       }
     });
+    this.addCalendarBtn.addEventListener('click', () => this.addCalendar());
+    this.clearDataBtn.addEventListener('click', () => this.clearAllData());
+
+    // Auto-save on settings change
+    this.autoRefreshCheckbox.addEventListener('change', () => this.saveSettings());
+    this.enableRemindersCheckbox.addEventListener('change', () => this.saveSettings());
+    this.reminderHoursSelect.addEventListener('change', () => this.saveSettings());
   }
 
   async handleParse() {
@@ -1193,22 +1193,39 @@ class UIController {
     this.settingsIcalLink.value = this.icalLinkInput.value;
     this.loadSavedCalendars();
     this.displaySubjectTags();
-    this.settingsPanel.classList.remove('hidden');
+
+    // Switch to settings view
+    this.mainView.classList.add('hidden');
+    this.settingsView.classList.remove('hidden');
+    this.headerTitle.textContent = '← Settings';
+    this.headerTitle.style.cursor = 'pointer';
+    this.settingsBtn.style.display = 'none';
+    this.isSettingsView = true;
   }
 
   closeSettings() {
-    this.settingsPanel.classList.add('hidden');
+    // Apply any pending iCal link change
+    const newUrl = this.settingsIcalLink.value.trim();
+    if (newUrl && newUrl !== this.icalLinkInput.value) {
+      this.icalLinkInput.value = newUrl;
+      this.handleParse();
+    }
+
+    // Switch to main view
+    this.settingsView.classList.add('hidden');
+    this.mainView.classList.remove('hidden');
+    this.headerTitle.innerHTML = 'TrinTasks <span id="eventCount" style="font-size: 14px; color: rgba(255,255,255,0.9);"></span>';
+    this.headerTitle.style.cursor = 'default';
+    this.settingsBtn.style.display = 'block';
+    this.isSettingsView = false;
+
+    // Restore event count
+    if (this.events.length > 0) {
+      document.getElementById('eventCount').textContent = `(${this.events.length} events)`;
+    }
   }
 
   async saveSettings() {
-    const newUrl = this.settingsIcalLink.value.trim();
-
-    if (newUrl && newUrl !== this.icalLinkInput.value) {
-      this.icalLinkInput.value = newUrl;
-      // Automatically parse the new URL
-      await this.handleParse();
-    }
-
     // Save all settings
     const autoRefresh = this.autoRefreshCheckbox.checked;
     const enableReminders = this.enableRemindersCheckbox.checked;
@@ -1227,8 +1244,6 @@ class UIController {
       clearInterval(this.autoRefreshInterval);
       this.autoRefreshInterval = null;
     }
-
-    this.closeSettings();
   }
 
   async addCalendar() {
@@ -1355,58 +1370,36 @@ class UIController {
       const tagDiv = document.createElement('div');
       tagDiv.className = 'subject-tag-item';
 
+      // Create a hidden color input
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      colorInput.value = color;
+      colorInput.className = 'tag-color-input';
+      colorInput.addEventListener('input', (e) => {
+        this.updateSubjectTagColor(name, e.target.value);
+        colorIndicator.style.backgroundColor = e.target.value;
+      });
+
       const colorIndicator = document.createElement('div');
       colorIndicator.className = 'tag-color-indicator';
       colorIndicator.style.backgroundColor = color;
+      colorIndicator.title = 'Click to change color';
+      colorIndicator.addEventListener('click', () => colorInput.click());
 
       const tagName = document.createElement('span');
       tagName.className = 'tag-name';
       tagName.textContent = name;
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-tag';
-      deleteBtn.textContent = '×';
-      deleteBtn.addEventListener('click', () => this.deleteSubjectTag(name));
-
+      tagDiv.appendChild(colorInput);
       tagDiv.appendChild(colorIndicator);
       tagDiv.appendChild(tagName);
-      tagDiv.appendChild(deleteBtn);
       this.subjectTagsDiv.appendChild(tagDiv);
     });
   }
 
-  async addSubjectTag() {
-    const name = this.newTagNameInput.value.trim().toUpperCase();
-    const color = this.newTagColorInput.value;
-
-    if (!name) {
-      alert('Please enter a subject name');
-      return;
-    }
-
+  async updateSubjectTagColor(name, color) {
     this.subjectTags[name] = color;
     await chrome.storage.local.set({ subjectTags: this.subjectTags });
-    this.displaySubjectTags();
-
-    // Clear inputs
-    this.newTagNameInput.value = '';
-    this.newTagColorInput.value = '#3b82f6';
-
-    // Re-render events to apply new tag
-    if (this.events.length > 0) {
-      this.displayEvents(this.events);
-    }
-  }
-
-  async deleteSubjectTag(name) {
-    delete this.subjectTags[name];
-    await chrome.storage.local.set({ subjectTags: this.subjectTags });
-    this.displaySubjectTags();
-
-    // Re-render events
-    if (this.events.length > 0) {
-      this.displayEvents(this.events);
-    }
   }
 
   getSubjectFromTitle(title) {
