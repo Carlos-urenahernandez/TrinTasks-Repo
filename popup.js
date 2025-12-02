@@ -590,7 +590,7 @@ class UIController {
       checkbox.type = 'checkbox';
       checkbox.className = 'event-checkbox';
       checkbox.checked = event.isCompleted || false;
-      checkbox.addEventListener('change', () => this.toggleAssignmentComplete(event));
+      checkbox.addEventListener('change', () => this.toggleAssignmentComplete(event, eventDiv));
       headerDiv.appendChild(checkbox);
     }
 
@@ -601,19 +601,15 @@ class UIController {
     const cleanTitle = this.getCleanTitle(event.title);
     let titleHtml = this.escapeHtml(cleanTitle);
 
-    // Add completed status indicator
-    if (event.isCompleted) {
-      titleHtml = `<span style="text-decoration: line-through; color: #6b7280;">${titleHtml}</span>`;
-    } else {
-      titleHtml = `${titleHtml}`;
-    }
-
     // Add progress indicator if available
     if (event.percentComplete !== undefined && event.percentComplete < 100 && !event.isCompleted) {
       titleHtml += ` <span style="font-size: 11px; color: #6b7280;">(${event.percentComplete}%)</span>`;
     }
 
-    titleDiv.innerHTML = titleHtml;
+    titleDiv.innerHTML = `<span class="title-text">${titleHtml}</span>`;
+    if (event.isCompleted) {
+      titleDiv.classList.add('title-completed');
+    }
     headerDiv.appendChild(titleDiv);
     eventDiv.appendChild(headerDiv);
 
@@ -947,7 +943,7 @@ class UIController {
     }
   }
 
-  async toggleAssignmentComplete(event) {
+  async toggleAssignmentComplete(event, eventElement) {
     const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
 
     // Load existing completed assignments
@@ -959,6 +955,11 @@ class UIController {
       delete completedAssignments[eventId];
       event.isCompleted = false;
       event.completedDate = null;
+      if (eventElement) {
+        eventElement.classList.remove('completing');
+        const cb = eventElement.querySelector('.event-checkbox');
+        if (cb) cb.classList.remove('checked-anim');
+      }
     } else {
       // Mark as complete
       completedAssignments[eventId] = {
@@ -972,9 +973,18 @@ class UIController {
     // Save updated completion status
     await chrome.storage.local.set({ completedAssignments });
 
-    // Re-render week view and events
-    this.renderWeekView();
-    this.showEventsForSelectedDay();
+    // Quick celebration confetti when marking complete
+    if (event.isCompleted && eventElement) {
+      this.animateCompletion(eventElement);
+      setTimeout(() => {
+        this.renderWeekView();
+        this.showEventsForSelectedDay();
+      }, 850);
+    } else {
+      // Re-render week view and events
+      this.renderWeekView();
+      this.showEventsForSelectedDay();
+    }
   }
 
   async loadSavedData() {
@@ -1258,6 +1268,47 @@ class UIController {
       return cleanMatch[1].trim();
     }
     return title;
+  }
+
+  animateCompletion(target) {
+    if (!target) return;
+    target.classList.add('completing');
+    const cb = target.querySelector('.event-checkbox');
+    if (cb) {
+      cb.classList.add('checked-anim');
+    }
+    // Nudge the card slightly before it moves
+    target.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+    target.style.transform = 'scale(0.99)';
+    target.style.opacity = '0.9';
+    setTimeout(() => {
+      target.style.transform = '';
+      target.style.opacity = '';
+      target.classList.add('moving-down');
+    }, 350);
+    this.launchConfetti(target);
+  }
+
+  launchConfetti(target) {
+    if (!target) return;
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    const colors = ['#e63946', '#f77f00', '#2a9d8f', '#118ab2', '#8338ec', '#ff006e', '#8ac926'];
+
+    for (let i = 0; i < 14; i++) {
+      const piece = document.createElement('span');
+      piece.className = 'confetti-piece';
+      piece.style.left = `${Math.random() * 100}%`;
+      piece.style.backgroundColor = colors[i % colors.length];
+      piece.style.animationDelay = `${Math.random() * 0.2}s`;
+      piece.style.setProperty('--confetti-rotation', `${Math.random() * 360}deg`);
+      container.appendChild(piece);
+    }
+
+    target.appendChild(container);
+    setTimeout(() => {
+      container.remove();
+    }, 1200);
   }
 }
 
