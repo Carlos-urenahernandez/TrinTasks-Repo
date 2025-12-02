@@ -2,8 +2,9 @@
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name.startsWith('reminder_')) {
     // Get the event details from storage
-    const data = await chrome.storage.local.get(['reminders']);
+    const data = await chrome.storage.local.get(['reminders', 'reminderHistory']);
     const reminders = data.reminders || {};
+    const reminderHistory = data.reminderHistory || {};
     const reminder = reminders[alarm.name];
 
     if (reminder) {
@@ -21,9 +22,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         priority: 2
       });
 
+      // Remember we sent this reminder so we don't re-create it
+      reminderHistory[alarm.name] = true;
+
       // Remove the used reminder
       delete reminders[alarm.name];
-      await chrome.storage.local.set({ reminders });
+      await chrome.storage.local.set({ reminders, reminderHistory });
     }
   }
 });
@@ -59,15 +63,19 @@ chrome.alarms.create('checkUpcomingAssignments', {
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'checkUpcomingAssignments') {
-    const data = await chrome.storage.local.get(['events', 'completedAssignments', 'reminderSettings']);
+    const data = await chrome.storage.local.get(['events', 'completedAssignments', 'reminderSettings', 'reminders', 'reminderHistory']);
     const events = data.events || [];
     const completedAssignments = data.completedAssignments || {};
-    const settings = data.reminderSettings || { enabled: true, advanceHours: 24 };
+    const settings = data.reminderSettings || { enabled: true, intervals: [24, 16, 4, 1] };
+    const reminders = data.reminders || {};
+    const reminderHistory = data.reminderHistory || {};
 
     if (!settings.enabled) return;
 
     const now = Date.now();
-    const advanceTime = settings.advanceHours * 60 * 60 * 1000; // Convert hours to ms
+    const intervals = Array.isArray(settings.intervals) && settings.intervals.length > 0
+      ? settings.intervals
+      : [24, 16, 4, 1];
 
     events.forEach(async (event) => {
       // Skip if not an assignment or already completed
@@ -82,25 +90,44 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       const dueTimestamp = ICalDateToTimestamp(event.dueRaw || event.startRaw);
       const timeUntilDue = dueTimestamp - now;
 
-      // If due within the advance time and not already reminded
-      if (timeUntilDue > 0 && timeUntilDue <= advanceTime) {
-        const reminderId = `reminder_${eventId}_${Date.now()}`;
-        const hoursUntilDue = Math.floor(timeUntilDue / (1000 * 60 * 60));
+      // Skip overdue
+      if (timeUntilDue <= 0) return;
 
-        // Store reminder details
-        const reminders = data.reminders || {};
+      intervals.forEach(async (hrs) => {
+        const intervalMs = hrs * 60 * 60 * 1000;
+        const targetTime = dueTimestamp - intervalMs;
+        if (targetTime <= now) {
+          // If we're already past the target but before due, trigger soon unless already sent
+          const reminderId = `reminder_${eventId}_${hrs}h`;
+          if (reminderHistory[reminderId]) return;
+          reminders[reminderId] = {
+            eventId,
+            title: event.title,
+            message: `${event.title} is due in ${hrs} hours!`,
+            dueTime: event.dueTime,
+            intervalHours: hrs
+          };
+          reminderHistory[reminderId] = true; // Mark sent so we don't duplicate
+          chrome.alarms.create(reminderId, { delayInMinutes: 0.1 });
+          return;
+        }
+
+        // Future reminder - schedule if not already scheduled/sent
+        const reminderId = `reminder_${eventId}_${hrs}h`;
+        if (reminders[reminderId] || reminderHistory[reminderId]) return;
+        const delayMinutes = Math.max((targetTime - now) / (1000 * 60), 0.1);
         reminders[reminderId] = {
-          eventId: eventId,
+          eventId,
           title: event.title,
-          message: `${event.title} is due in ${hoursUntilDue} hours!`,
-          dueTime: event.dueTime
+          message: `${event.title} is due in ${hrs} hours!`,
+          dueTime: event.dueTime,
+          intervalHours: hrs
         };
-        await chrome.storage.local.set({ reminders });
-
-        // Create alarm for immediate notification
-        chrome.alarms.create(reminderId, { delayInMinutes: 0.1 });
-      }
+        chrome.alarms.create(reminderId, { delayInMinutes: delayMinutes });
+      });
     });
+
+    await chrome.storage.local.set({ reminders, reminderHistory });
   }
 });
 

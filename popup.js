@@ -550,12 +550,6 @@ class UIController {
     // Store events
     this.events = events;
 
-    // Show event count in header
-    const eventCountEl = document.getElementById('eventCount');
-    if (eventCountEl) {
-      eventCountEl.textContent = `(${events.length} events)`;
-    }
-
     // Hide input section and show main content
     this.inputSection.classList.add('hidden');
     this.noData.classList.add('hidden');
@@ -780,6 +774,7 @@ class UIController {
 
       // Get events for this day
       const eventsForDay = this.getEventsForDate(date);
+      const pendingCount = eventsForDay.filter(e => !e.isCompleted).length;
 
       // Day name
       const dayName = document.createElement('div');
@@ -794,10 +789,10 @@ class UIController {
       dayDiv.appendChild(dayNumber);
 
       // Event count indicator
-      if (eventsForDay.length > 0) {
+      if (pendingCount > 0) {
         const eventDot = document.createElement('div');
         eventDot.className = 'week-day-events';
-        eventDot.textContent = eventsForDay.length;
+        eventDot.textContent = pendingCount;
         dayDiv.appendChild(eventDot);
         dayDiv.classList.add('has-events');
       }
@@ -1060,15 +1055,10 @@ class UIController {
     // Switch to main view
     this.settingsView.classList.add('hidden');
     this.mainView.classList.remove('hidden');
-    this.headerTitle.innerHTML = 'TrinTasks <span id="eventCount" style="font-size: 14px; color: rgba(255,255,255,0.9);"></span>';
+    this.headerTitle.textContent = 'TrinTasks';
     this.headerTitle.style.cursor = 'default';
     this.settingsBtn.style.display = 'block';
     this.isSettingsView = false;
-
-    // Restore event count
-    if (this.events.length > 0) {
-      document.getElementById('eventCount').textContent = `(${this.events.length} events)`;
-    }
   }
 
   async saveSettings() {
@@ -1080,7 +1070,11 @@ class UIController {
     await chrome.storage.local.set({
       autoRefresh,
       enableReminders,
-      reminderHours
+      reminderHours,
+      reminderSettings: {
+        enabled: enableReminders,
+        intervals: [24, 16, 4, 1]
+      }
     });
 
     // Setup auto-refresh if enabled
