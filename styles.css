@@ -204,6 +204,28 @@ button:active {
   line-height: 1.2;
 }
 
+/* View mode controls */
+.view-mode-controls {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.view-mode-btn {
+  padding: 6px 10px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.view-mode-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
 .event-details {
   font-size: 13px;
   color: #4b5563;

@@ -424,6 +424,8 @@ class UIController {
     this.events = [];
     this.currentMonth = new Date().getMonth();
     this.currentYear = new Date().getFullYear();
+    this.currentDate = new Date(); // focused date for day/week navigation
+    this.viewMode = 'week'; // 'week' | 'day' | 'month'
 
     this.setupEventListeners();
     this.loadSavedData();
@@ -440,6 +442,91 @@ class UIController {
     this.toggleBtn.addEventListener('click', () => this.toggleView());
     this.prevMonthBtn.addEventListener('click', () => this.navigateMonth(-1));
     this.nextMonthBtn.addEventListener('click', () => this.navigateMonth(1));
+
+    // View mode buttons
+    const weekBtn = document.getElementById('weekBtn');
+    const dayBtn = document.getElementById('dayBtn');
+    const monthBtn = document.getElementById('monthBtn');
+    if (weekBtn && dayBtn && monthBtn) {
+      weekBtn.addEventListener('click', () => this.setViewMode('week'));
+      dayBtn.addEventListener('click', () => this.setViewMode('day'));
+      monthBtn.addEventListener('click', () => this.setViewMode('month'));
+    }
+  }
+
+  setViewMode(mode) {
+    this.viewMode = mode;
+    // update active class
+    const map = { weekBtn: 'week', dayBtn: 'day', monthBtn: 'month' };
+    Object.keys(map).forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (map[id] === mode) el.classList.add('active'); else el.classList.remove('active');
+    });
+
+    // Recompute currentDate/currentMonth/currentYear if needed
+    this.currentMonth = this.currentDate.getMonth();
+    this.currentYear = this.currentDate.getFullYear();
+
+    // Rebuild index and render according to mode
+    if (this.events && this.events.length) {
+      let eventsForView = [];
+      if (mode === 'month') {
+        eventsForView = this.filterEventsForMonth(this.events, this.currentMonth, this.currentYear);
+      } else if (mode === 'week') {
+        const weekDates = this.getDatesForWeek(this.currentDate);
+        eventsForView = this.filterEventsForDates(this.events, weekDates);
+      } else if (mode === 'day') {
+        const ds = this.formatDateKey(this.currentDate);
+        eventsForView = this.filterEventsForDates(this.events, [ds]);
+      }
+      this.buildCalendarIndex(eventsForView);
+      // refresh calendar and list
+      this.renderCalendar();
+      this.renderEventsListForCurrentView(eventsForView);
+    }
+  }
+
+  formatDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}${m}${d}`;
+  }
+
+  getDatesForWeek(centerDate) {
+    const d = new Date(centerDate.getFullYear(), centerDate.getMonth(), centerDate.getDate());
+    const day = d.getDay(); // 0..6
+    const start = new Date(d);
+    start.setDate(d.getDate() - day); // Sunday
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const dd = new Date(start);
+      dd.setDate(start.getDate() + i);
+      dates.push(this.formatDateKey(dd));
+    }
+    return dates;
+  }
+
+  filterEventsForDates(events, dateKeys) {
+    const set = new Set(dateKeys);
+    return (events || []).filter(ev => {
+      const raw = ev.dueRaw || ev.startRaw || ev.dueTime || ev.startTime;
+      if (!raw) return false;
+      const datePart = raw.split('T')[0].replace(/\D/g, '').substring(0,8);
+      return set.has(datePart);
+    });
+  }
+
+  renderEventsListForCurrentView(eventsForView) {
+    // Show the events list and populate with provided events
+    this.eventsContainer.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    eventsForView.forEach(ev => frag.appendChild(this.createEventElement(ev)));
+    this.eventsContainer.appendChild(frag);
+    // ensure list is visible
+    this.eventsList.classList.remove('hidden');
+    this.calendarView.classList.remove('hidden');
   }
 
   async handleParse() {
@@ -493,6 +580,9 @@ class UIController {
 
     // Store events for calendar view (full set)
     this.events = events;
+    this.currentDate = new Date();
+    // default to week view on load
+    this.viewMode = 'week';
 
     // Show event count in header
     const eventCountEl = document.getElementById('eventCount');
@@ -500,40 +590,26 @@ class UIController {
       eventCountEl.textContent = `(${events.length} events loaded)`;
     }
 
-    // For performance: only render events for the current month
-    const month = this.currentMonth;
-    const year = this.currentYear;
-
-    const eventsThisMonth = this.filterEventsForMonth(events, month, year);
-
-    // Keep an indexed map of dateStr -> events for fast lookups in calendar rendering
-    this.buildCalendarIndex(eventsThisMonth);
-
-    // Sort the filtered events (newest due first)
-    eventsThisMonth.sort((a, b) => {
-      const dateA = a.dueRaw || a.startRaw || a.dueTime || a.startTime;
-      const dateB = b.dueRaw || b.startRaw || b.dueTime || b.startTime;
-      const ta = ICalParser.iCalDateToTimestamp(dateA);
-      const tb = ICalParser.iCalDateToTimestamp(dateB);
-      return tb - ta; // descending
-    });
-
-    this.eventsContainer.innerHTML = '';
-
-    // Merge saved statuses into filtered events before rendering
-    eventsThisMonth.forEach(ev => {
-      if (ev && ev.uid && this.savedStatuses && this.savedStatuses[ev.uid]) {
-        ev._savedStatus = this.savedStatuses[ev.uid];
-      }
-    });
-
-    // Use a document fragment to minimize reflows
-    const frag = document.createDocumentFragment();
-    eventsThisMonth.forEach(event => {
-      const eventElement = this.createEventElement(event);
-      frag.appendChild(eventElement);
-    });
-    this.eventsContainer.appendChild(frag);
+    // Build index and render depending on viewMode (week/day/month)
+    if (this.viewMode === 'month') {
+      const month = this.currentMonth;
+      const year = this.currentYear;
+      const eventsThisMonth = this.filterEventsForMonth(events, month, year);
+      eventsThisMonth.sort((a, b) => ICalParser.iCalDateToTimestamp(b.dueRaw || b.startRaw || b.dueTime || b.startTime) - ICalParser.iCalDateToTimestamp(a.dueRaw || a.startRaw || a.dueTime || a.startTime));
+      this.buildCalendarIndex(eventsThisMonth);
+      this.renderEventsListForCurrentView(eventsThisMonth);
+    } else if (this.viewMode === 'week') {
+      const weekDates = this.getDatesForWeek(this.currentDate);
+      const eventsThisWeek = this.filterEventsForDates(events, weekDates);
+      eventsThisWeek.sort((a, b) => ICalParser.iCalDateToTimestamp(b.dueRaw || b.startRaw || b.dueTime || b.startTime) - ICalParser.iCalDateToTimestamp(a.dueRaw || a.startRaw || a.dueTime || a.startTime));
+      this.buildCalendarIndex(eventsThisWeek);
+      this.renderEventsListForCurrentView(eventsThisWeek);
+    } else { // day
+      const ds = this.formatDateKey(this.currentDate);
+      const eventsToday = this.filterEventsForDates(events, [ds]);
+      this.buildCalendarIndex(eventsToday);
+      this.renderEventsListForCurrentView(eventsToday);
+    }
 
     // Hide input section and show main content
     this.inputSection.classList.add('hidden');

@@ -36,7 +36,14 @@
       <div id="calendarView" class="calendar-view">
         <div class="calendar-header">
           <button id="prevMonth" class="nav-btn">‹</button>
-          <h2 id="calendarTitle">Calendar</h2>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div id="viewModeControls" class="view-mode-controls">
+              <button id="weekBtn" class="view-mode-btn">Week</button>
+              <button id="dayBtn" class="view-mode-btn">Day</button>
+              <button id="monthBtn" class="view-mode-btn">Month</button>
+            </div>
+            <h2 id="calendarTitle">Calendar</h2>
+          </div>
           <button id="nextMonth" class="nav-btn">›</button>
         </div>
         <div class="calendar-grid">
