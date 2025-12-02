@@ -31,16 +31,41 @@ class ICalParser {
   static parseEvent(eventData) {
     const event = {};
 
-    // Extract SUMMARY (title)
-    let match = eventData.match(/SUMMARY:(.+?)(?:\r?\n|$)/);
-    event.title = match ? this.decodeText(match[1].trim()) : 'Untitled Event';
+    // Extract SUMMARY (title) - handle folded lines (lines that start with a space are continuations)
+    let match = eventData.match(/SUMMARY:(.+?)(?=\r?\n[A-Z-]+:|$)/s);
+    if (match) {
+      // Handle folded lines (lines that start with a space or tab are continuations)
+      let title = match[1].replace(/\r?\n[ \t]/g, '');
+      // Decode HTML entities in titles (including numeric entities for accented chars)
+      title = title.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
+      title = title.replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
+      title = title.replace(/&amp;/g, '&')
+                   .replace(/&lt;/g, '<')
+                   .replace(/&gt;/g, '>')
+                   .replace(/&quot;/g, '"')
+                   .replace(/&#39;/g, "'")
+                   .replace(/&nbsp;/g, ' ')
+                   .replace(/&ndash;/g, '–')
+                   .replace(/&mdash;/g, '—')
+                   .replace(/&ldquo;/g, '"')
+                   .replace(/&rdquo;/g, '"')
+                   .replace(/&lsquo;/g, "'")
+                   .replace(/&rsquo;/g, "'");
+      event.title = this.decodeText(title.trim());
+    } else {
+      event.title = 'Untitled Event';
+    }
 
-    // Check if this is an assignment based on keywords in the title
-    const isAssignment = /\b(due|assignment|homework|test|quiz|exam|project|paper|lab|presentation)\b/i.test(event.title);
-    event.isAssignment = isAssignment;
+    // Check if this is an assignment based on:
+    // 1. Keywords in the title
+    // 2. Has a class prefix pattern (e.g., "ADV. BIOLOGY - B:" or "ENGLISH 11/Fa - C2:")
+    // 3. Has high priority (PRIORITY:3 or lower in iCal = high priority)
+    const hasKeywords = /\b(due|assignment|homework|test|quiz|exam|project|paper|lab|presentation|read|watch|complete|finish|study)\b/i.test(event.title);
+    const hasClassPrefix = /^(?:ADV\.\s+)?[A-Z][A-Z0-9\s:\/]+-\s*[A-Z0-9]+:/i.test(event.title);
+    event.isAssignment = hasKeywords || hasClassPrefix;
 
     // Try to extract time from the title if it contains "due" info
-    if (isAssignment && event.title) {
+    if (event.isAssignment && event.title) {
       // Look for time patterns like "8:55 a.m.", "11:59 PM", "9am", etc.
       const timeMatch = event.title.match(/(\d{1,2}:\d{2}\s*[ap]\.?m\.?|\d{1,2}\s*[ap]\.?m\.?)/i);
       if (timeMatch) {
@@ -51,21 +76,34 @@ class ICalParser {
     // Extract DESCRIPTION - handle multi-line descriptions properly
     match = eventData.match(/DESCRIPTION:(.+?)(?=\r?\n[A-Z-]+:|$)/s);
     if (match) {
-      // Handle folded lines (lines that start with a space are continuations)
-      let description = match[1].replace(/\r?\n\s/g, '');
-      // Decode HTML entities and iCal escapes
-      description = description.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(code));
+      // Handle folded lines (lines that start with a space or tab are continuations)
+      let description = match[1].replace(/\r?\n[ \t]/g, '');
+      // Decode HTML entities (including numeric entities for accented chars)
+      description = description.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
+      description = description.replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
       description = description.replace(/&amp;/g, '&')
                               .replace(/&lt;/g, '<')
                               .replace(/&gt;/g, '>')
                               .replace(/&quot;/g, '"')
-                              .replace(/&#39;/g, "'");
+                              .replace(/&#39;/g, "'")
+                              .replace(/&nbsp;/g, ' ')
+                              .replace(/&ndash;/g, '–')
+                              .replace(/&mdash;/g, '—')
+                              .replace(/&ldquo;/g, '"')
+                              .replace(/&rdquo;/g, '"')
+                              .replace(/&lsquo;/g, "'")
+                              .replace(/&rsquo;/g, "'");
       event.description = this.decodeText(description.trim());
     }
 
-    // Extract LOCATION
-    match = eventData.match(/LOCATION:(.+?)(?:\r?\n|$)/);
-    event.location = match ? this.decodeText(match[1].trim()) : null;
+    // Extract LOCATION - handle folded lines
+    match = eventData.match(/LOCATION:(.+?)(?=\r?\n[A-Z-]+:|$)/s);
+    if (match) {
+      let location = match[1].replace(/\r?\n[ \t]/g, '');
+      event.location = this.decodeText(location.trim());
+    } else {
+      event.location = null;
+    }
 
     // Extract DTSTART (start time)
     match = eventData.match(/DTSTART(?:;TZID=[^:]*)?(?:;VALUE=DATE)?:(.+?)(?:\r?\n|$)/);
@@ -315,11 +353,22 @@ class ICalParser {
    */
   static decodeText(text) {
     return text
-      .replace(/\\n/g, '\n')
+      // Handle escaped backslash first (before other replacements)
+      .replace(/\\\\/g, '\u0000BACKSLASH\u0000')
+      // Handle newlines (both lowercase and uppercase)
+      .replace(/\\[nN]/g, '\n')
       .replace(/\\r/g, '\r')
+      // Handle escaped punctuation
       .replace(/\\,/g, ',')
       .replace(/\\;/g, ';')
-      .replace(/\\\\/g, '\\');
+      .replace(/\\:/g, ':')
+      // Strip HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Restore backslashes
+      .replace(/\u0000BACKSLASH\u0000/g, '\\')
+      // Clean up multiple consecutive newlines
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   /**
@@ -362,7 +411,9 @@ class ICalParser {
 // UI Controller
 class UIController {
   constructor() {
+    console.log('UIController constructor called');
     this.parseBtn = document.getElementById('parseBtn');
+    console.log('parseBtn:', this.parseBtn);
     this.icalLinkInput = document.getElementById('icalLink');
     this.inputSection = document.querySelector('.input-section');
     this.loadingSpinner = document.getElementById('loadingSpinner');
@@ -371,11 +422,14 @@ class UIController {
     this.eventsList = document.getElementById('eventsList');
     this.eventsContainer = document.getElementById('eventsContainer');
     this.noData = document.getElementById('noData');
-    this.calendarView = document.getElementById('calendarView');
-    this.calendarTitle = document.getElementById('calendarTitle');
-    this.calendarDays = document.getElementById('calendarDays');
-    this.prevMonthBtn = document.getElementById('prevMonth');
-    this.nextMonthBtn = document.getElementById('nextMonth');
+
+    // Week view elements
+    this.weekView = document.getElementById('weekView');
+    this.weekTitle = document.getElementById('weekTitle');
+    this.weekDays = document.getElementById('weekDays');
+    this.prevWeekBtn = document.getElementById('prevWeek');
+    this.nextWeekBtn = document.getElementById('nextWeek');
+    this.selectedDayTitle = document.getElementById('selectedDayTitle');
 
     // Header elements
     this.headerTitle = document.getElementById('headerTitle');
@@ -387,8 +441,6 @@ class UIController {
 
     // Settings elements
     this.settingsIcalLink = document.getElementById('settingsIcalLink');
-    this.savedCalendarsDiv = document.getElementById('savedCalendars');
-    this.addCalendarBtn = document.getElementById('addCalendarBtn');
     this.clearDataBtn = document.getElementById('clearDataBtn');
     this.autoRefreshCheckbox = document.getElementById('autoRefresh');
     this.enableRemindersCheckbox = document.getElementById('enableReminders');
@@ -398,17 +450,25 @@ class UIController {
     this.subjectTagsDiv = document.getElementById('subjectTags');
 
     this.events = [];
-    this.currentMonth = new Date().getMonth();
-    this.currentYear = new Date().getFullYear();
-    this.savedCalendars = [];
     this.subjectTags = {};
-    this.currentFilter = 'all';
     this.isSettingsView = false;
+
+    // Week view state
+    this.currentWeekStart = this.getWeekStart(new Date());
+    this.selectedDate = new Date();
 
     this.setupEventListeners();
     this.loadSavedData();
     this.loadSettings();
     this.loadSubjectTags();
+  }
+
+  getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d;
   }
 
   setupEventListeners() {
@@ -418,18 +478,8 @@ class UIController {
         this.handleParse();
       }
     });
-    this.prevMonthBtn.addEventListener('click', () => this.navigateMonth(-1));
-    this.nextMonthBtn.addEventListener('click', () => this.navigateMonth(1));
-
-    // Filter button listeners
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        this.currentFilter = e.target.dataset.filter;
-        this.applyFilter();
-      });
-    });
+    this.prevWeekBtn.addEventListener('click', () => this.navigateWeek(-1));
+    this.nextWeekBtn.addEventListener('click', () => this.navigateWeek(1));
 
     // Settings event listeners
     this.settingsBtn.addEventListener('click', () => this.openSettings());
@@ -438,7 +488,6 @@ class UIController {
         this.closeSettings();
       }
     });
-    this.addCalendarBtn.addEventListener('click', () => this.addCalendar());
     this.clearDataBtn.addEventListener('click', () => this.clearAllData());
 
     // Auto-save on settings change
@@ -448,7 +497,9 @@ class UIController {
   }
 
   async handleParse() {
+    console.log('handleParse called');
     const url = this.icalLinkInput.value.trim();
+    console.log('URL:', url);
 
     if (!url) {
       this.showError('Please enter a valid URL');
@@ -475,11 +526,14 @@ class UIController {
     this.clearError();
 
     try {
+      console.log('Fetching and parsing...');
       const events = await ICalParser.fetchAndParse(url);
+      console.log('Parsed events:', events.length);
       this.displayEvents(events);
       // Save to chrome storage
       await this.saveToStorage(url, events);
     } catch (error) {
+      console.error('Parse error:', error);
       this.showError(error.message);
       this.hideEventsList();
     } finally {
@@ -493,43 +547,23 @@ class UIController {
       return;
     }
 
-    console.log('displayEvents called with', events.length, 'events');
-    console.log('Sample events:', events.slice(0, 3));
-
-    // Store events for calendar view
+    // Store events
     this.events = events;
 
     // Show event count in header
     const eventCountEl = document.getElementById('eventCount');
     if (eventCountEl) {
-      eventCountEl.textContent = `(${events.length} events loaded)`;
+      eventCountEl.textContent = `(${events.length} events)`;
     }
-
-    // Sort events by start/due date in reverse chronological order (newest first)
-    // Prioritize DUE date over START date for tasks
-    events.sort((a, b) => {
-      const dateA = a.dueRaw || a.startRaw || a.dueTime || a.startTime;
-      const dateB = b.dueRaw || b.startRaw || b.dueTime || b.startTime;
-      const ta = ICalParser.iCalDateToTimestamp(dateA);
-      const tb = ICalParser.iCalDateToTimestamp(dateB);
-      return tb - ta; // descending
-    });
-
-    this.eventsContainer.innerHTML = '';
-
-    events.forEach(event => {
-      const eventElement = this.createEventElement(event);
-      this.eventsContainer.appendChild(eventElement);
-    });
 
     // Hide input section and show main content
     this.inputSection.classList.add('hidden');
     this.noData.classList.add('hidden');
     this.mainContent.classList.remove('hidden');
 
-    // Show both calendar and list views
-    this.renderCalendar();
-    this.applyFilter();
+    // Show week view and events for selected day (today by default)
+    this.renderWeekView();
+    this.showEventsForSelectedDay();
   }
 
   createEventElement(event) {
@@ -563,31 +597,15 @@ class UIController {
     const titleDiv = document.createElement('div');
     titleDiv.className = 'event-title';
 
-    let titleHtml = this.escapeHtml(event.title);
-
-    // Add assignment indicator for Trinity format
-    let typeIcon = '';
-    if (event.isAssignment) {
-      typeIcon = '📚 ';
-    }
-
-    // Add priority indicator
-    let priorityIcon = '';
-    if (event.priority !== undefined) {
-      if (event.priority >= 1 && event.priority <= 3) {
-        priorityIcon = '🔴 '; // High priority
-      } else if (event.priority >= 4 && event.priority <= 6) {
-        priorityIcon = '🟡 '; // Medium priority
-      } else if (event.priority >= 7 && event.priority <= 9) {
-        priorityIcon = '🟢 '; // Low priority
-      }
-    }
+    // Get clean title without class prefix
+    const cleanTitle = this.getCleanTitle(event.title);
+    let titleHtml = this.escapeHtml(cleanTitle);
 
     // Add completed status indicator
     if (event.isCompleted) {
-      titleHtml = `<span style="text-decoration: line-through; color: #6b7280;">${typeIcon}${priorityIcon}${titleHtml}</span>`;
+      titleHtml = `<span style="text-decoration: line-through; color: #6b7280;">${titleHtml}</span>`;
     } else {
-      titleHtml = `${typeIcon}${priorityIcon}${titleHtml}`;
+      titleHtml = `${titleHtml}`;
     }
 
     // Add progress indicator if available
@@ -614,6 +632,14 @@ class UIController {
       </div>`;
     }
 
+    // Show class/subject instead of start/end rows
+    if (subjectTag) {
+      html += `<div class="event-detail">
+        <span class="event-detail-label">Class:</span>
+        <span class="event-detail-value">${this.escapeHtml(subjectTag.name)}</span>
+      </div>`;
+    }
+
     // Show completed date if available
     if (event.isCompleted && event.completedDate) {
       const completedDate = new Date(event.completedDate);
@@ -627,20 +653,6 @@ class UIController {
       html += `<div class="event-detail">
         <span class="event-detail-label">Completed:</span>
         <span class="event-detail-value" style="color: #10b981;">✓ ${formattedDate}</span>
-      </div>`;
-    }
-
-    if (event.startTime) {
-      html += `<div class="event-detail">
-        <span class="event-detail-label">${event.dueTime ? 'Start:' : 'Date:'}</span>
-        <span class="event-detail-value">${event.startTime}</span>
-      </div>`;
-    }
-
-    if (event.endTime) {
-      html += `<div class="event-detail">
-        <span class="event-detail-label">End:</span>
-        <span class="event-detail-value">${event.endTime}</span>
       </div>`;
     }
 
@@ -719,318 +731,131 @@ class UIController {
     this.mainContent.classList.add('hidden');
   }
 
-  applyFilter() {
-    if (!this.events || this.events.length === 0) return;
-
-    let filteredEvents = [...this.events];
-
-    // Apply filter
-    if (this.currentFilter === 'upcoming') {
-      filteredEvents = filteredEvents.filter(event => {
-        const dueTimestamp = ICalParser.iCalDateToTimestamp(event.dueRaw || event.startRaw);
-        return !event.isCompleted && dueTimestamp >= Date.now();
-      });
-    } else if (this.currentFilter === 'completed') {
-      filteredEvents = filteredEvents.filter(event => event.isCompleted);
-    }
-
-    // Sort events by date (upcoming first)
-    filteredEvents.sort((a, b) => {
-      const dateA = a.dueRaw || a.startRaw || a.dueTime || a.startTime;
-      const dateB = b.dueRaw || b.startRaw || b.dueTime || b.startTime;
-      const ta = ICalParser.iCalDateToTimestamp(dateA);
-      const tb = ICalParser.iCalDateToTimestamp(dateB);
-      return ta - tb; // ascending for chronological order
-    });
-
-    // Clear and repopulate the events container
-    this.eventsContainer.innerHTML = '';
-    filteredEvents.forEach(event => {
-      const eventElement = this.createEventElement(event);
-      this.eventsContainer.appendChild(eventElement);
-    });
-
-    // Show message if no events match filter
-    if (filteredEvents.length === 0) {
-      const noEventsMsg = document.createElement('div');
-      noEventsMsg.className = 'no-events-message';
-      noEventsMsg.textContent = `No ${this.currentFilter === 'completed' ? 'completed' : 'upcoming'} assignments`;
-      this.eventsContainer.appendChild(noEventsMsg);
-    }
+  navigateWeek(direction) {
+    const newDate = new Date(this.currentWeekStart);
+    newDate.setDate(newDate.getDate() + (direction * 7));
+    this.currentWeekStart = newDate;
+    this.renderWeekView();
   }
 
-  navigateMonth(direction) {
-    this.currentMonth += direction;
-    if (this.currentMonth > 11) {
-      this.currentMonth = 0;
-      this.currentYear++;
-    } else if (this.currentMonth < 0) {
-      this.currentMonth = 11;
-      this.currentYear--;
+  renderWeekView() {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Calculate week end date
+    const weekEnd = new Date(this.currentWeekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    // Update week title
+    const startMonth = monthNames[this.currentWeekStart.getMonth()];
+    const endMonth = monthNames[weekEnd.getMonth()];
+    const startDay = this.currentWeekStart.getDate();
+    const endDay = weekEnd.getDate();
+
+    if (startMonth === endMonth) {
+      this.weekTitle.textContent = `${startMonth} ${startDay} - ${endDay}`;
+    } else {
+      this.weekTitle.textContent = `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
     }
-    this.renderCalendar();
-  }
 
-  renderCalendar() {
-    console.log('renderCalendar called for', this.currentMonth, this.currentYear);
-    console.log('Total events available:', this.events.length);
+    // Clear and rebuild week days
+    this.weekDays.innerHTML = '';
 
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
-
-    this.calendarTitle.textContent = `${monthNames[this.currentMonth]} ${this.currentYear}`;
-
-    // Get first day of the month
-    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
-    const prevLastDay = new Date(this.currentYear, this.currentMonth, 0);
-
-    const firstDayOfWeek = firstDay.getDay();
-    const daysInMonth = lastDay.getDate();
-    const daysInPrevMonth = prevLastDay.getDate();
-
-    this.calendarDays.innerHTML = '';
-
-    // Get today's date for highlighting
     const today = new Date();
-    const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
-    const todayDate = today.getDate();
+    today.setHours(0, 0, 0, 0);
 
-    // Add previous month's days
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-      const day = daysInPrevMonth - i;
-      const dayElement = this.createDayElement(day, true, false);
-      this.calendarDays.appendChild(dayElement);
-    }
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(this.currentWeekStart);
+      date.setDate(date.getDate() + i);
 
-    // Add current month's days
-    for (let day = 1; day <= daysInMonth; day++) {
-      const isToday = isCurrentMonth && day === todayDate;
-      const dayElement = this.createDayElement(day, false, isToday);
-      this.calendarDays.appendChild(dayElement);
-    }
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'week-day';
 
-    // Add next month's days to complete the grid
-    const totalCells = this.calendarDays.children.length;
-    const remainingCells = (Math.ceil(totalCells / 7) * 7) - totalCells;
-    for (let day = 1; day <= remainingCells; day++) {
-      const dayElement = this.createDayElement(day, true, false);
-      this.calendarDays.appendChild(dayElement);
-    }
-  }
+      // Check if this is today
+      const isToday = date.getTime() === today.getTime();
+      if (isToday) dayDiv.classList.add('today');
 
-  createDayElement(dayNumber, isOtherMonth, isToday) {
-    const dayDiv = document.createElement('div');
-    dayDiv.className = 'calendar-day';
-    if (isOtherMonth) dayDiv.classList.add('other-month');
-    if (isToday) dayDiv.classList.add('today');
+      // Check if this is the selected day
+      const selectedDateNorm = new Date(this.selectedDate);
+      selectedDateNorm.setHours(0, 0, 0, 0);
+      if (date.getTime() === selectedDateNorm.getTime()) {
+        dayDiv.classList.add('selected');
+      }
 
-    const dayNumberDiv = document.createElement('div');
-    dayNumberDiv.className = 'day-number';
-
-    const dayText = document.createElement('span');
-    dayText.textContent = dayNumber;
-    dayNumberDiv.appendChild(dayText);
-
-    if (!isOtherMonth) {
-      const date = new Date(this.currentYear, this.currentMonth, dayNumber);
+      // Get events for this day
       const eventsForDay = this.getEventsForDate(date);
 
-      console.log(`Day ${dayNumber}: Found ${eventsForDay.length} events`, eventsForDay);
+      // Day name
+      const dayName = document.createElement('div');
+      dayName.className = 'week-day-name';
+      dayName.textContent = dayNames[i];
+      dayDiv.appendChild(dayName);
 
+      // Day number
+      const dayNumber = document.createElement('div');
+      dayNumber.className = 'week-day-number';
+      dayNumber.textContent = date.getDate();
+      dayDiv.appendChild(dayNumber);
+
+      // Event count indicator
       if (eventsForDay.length > 0) {
-        const eventCount = document.createElement('span');
-        eventCount.className = 'event-count';
-        eventCount.textContent = eventsForDay.length;
-        dayNumberDiv.appendChild(eventCount);
-
-        // Make the entire day clickable with visual feedback
-        dayDiv.style.cursor = 'pointer';
-
-        // Check if any events have due dates (assignments/tasks)
-        const hasDueDates = eventsForDay.some(event => event.dueRaw || event.dueTime);
-
-        if (hasDueDates) {
-          dayDiv.classList.add('has-due-dates');
-        } else {
-          dayDiv.classList.add('has-events');
-        }
+        const eventDot = document.createElement('div');
+        eventDot.className = 'week-day-events';
+        eventDot.textContent = eventsForDay.length;
+        dayDiv.appendChild(eventDot);
+        dayDiv.classList.add('has-events');
       }
 
-      // Add click handler to all current month days (not just days with events)
-      dayDiv.addEventListener('click', (e) => {
-        console.log('Day clicked!', date, eventsForDay);
-        e.stopPropagation();
-        e.preventDefault();
-        this.showDayDetail(date, eventsForDay);
+      // Click handler to select day
+      dayDiv.addEventListener('click', () => {
+        this.selectedDate = date;
+        this.renderWeekView();
+        this.showEventsForSelectedDay();
       });
-    }
 
-    dayDiv.appendChild(dayNumberDiv);
-    return dayDiv;
+      this.weekDays.appendChild(dayDiv);
+    }
   }
 
-  showDayDetail(date, events) {
-    console.log('showDayDetail called with:', date, events);
+  showEventsForSelectedDay() {
+    const eventsForDay = this.getEventsForDate(this.selectedDate);
 
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'day-detail-overlay';
+    // Update title
+    const options = { weekday: 'long', month: 'long', day: 'numeric' };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedNorm = new Date(this.selectedDate);
+    selectedNorm.setHours(0, 0, 0, 0);
 
-    console.log('Overlay created, appending to container');
-
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'day-detail-modal';
-
-    // Create header
-    const header = document.createElement('div');
-    header.className = 'day-detail-header';
-
-    const title = document.createElement('div');
-    title.className = 'day-detail-title';
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    title.textContent = date.toLocaleDateString('en-US', options);
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'day-detail-close';
-    closeBtn.innerHTML = '×';
-    closeBtn.addEventListener('click', () => {
-      overlay.remove();
-    });
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-
-    // Create events container
-    const eventsContainer = document.createElement('div');
-    eventsContainer.className = 'day-detail-events';
-
-    if (events.length === 0) {
-      const noEvents = document.createElement('div');
-      noEvents.className = 'day-detail-no-events';
-      noEvents.textContent = 'No events for this day';
-      eventsContainer.appendChild(noEvents);
+    if (selectedNorm.getTime() === today.getTime()) {
+      this.selectedDayTitle.textContent = "Today's Assignments";
     } else {
-      events.forEach(event => {
-        const eventDiv = document.createElement('div');
-        eventDiv.className = 'day-detail-event';
-
-        const eventTitle = document.createElement('div');
-        eventTitle.className = 'day-detail-event-title';
-
-        // Build title with priority and status
-        let titleContent = '';
-
-        // Add assignment indicator for Trinity format
-        if (event.isAssignment) {
-          titleContent += '📚 ';
-        }
-
-        // Add priority indicator
-        if (event.priority !== undefined) {
-          if (event.priority >= 1 && event.priority <= 3) {
-            titleContent += '🔴 '; // High priority
-          } else if (event.priority >= 4 && event.priority <= 6) {
-            titleContent += '🟡 '; // Medium priority
-          } else if (event.priority >= 7 && event.priority <= 9) {
-            titleContent += '🟢 '; // Low priority
-          }
-        }
-
-        // Add completed status indicator
-        if (event.status === 'COMPLETED' || event.completedTime) {
-          eventTitle.innerHTML = `✅ <span style="text-decoration: line-through; color: #6b7280;">${titleContent}${this.escapeHtml(event.title)}</span>`;
-        } else {
-          eventTitle.innerHTML = `${titleContent}${this.escapeHtml(event.title)}`;
-        }
-
-        // Add progress indicator if available
-        if (event.percentComplete !== undefined && event.percentComplete < 100 && !event.completedTime) {
-          const progress = document.createElement('span');
-          progress.style.cssText = 'font-size: 12px; color: #6b7280; margin-left: 8px;';
-          progress.textContent = `(${event.percentComplete}%)`;
-          eventTitle.appendChild(progress);
-        }
-
-        eventDiv.appendChild(eventTitle);
-
-        // Show DUE date for tasks/todos
-        if (event.dueTime) {
-          const eventDue = document.createElement('div');
-          eventDue.className = 'day-detail-event-time';
-
-          const isOverdue = !event.completedTime && event.dueRaw &&
-                           ICalParser.iCalDateToTimestamp(event.dueRaw) < Date.now();
-
-          if (isOverdue) {
-            eventDue.style.color = '#dc2626';
-            eventDue.style.fontWeight = '700';
-            eventDue.textContent = `⚠️ OVERDUE: ${this.formatTimeForDisplay(event.dueTime)}`;
-          } else {
-            eventDue.style.color = '#dc2626';
-            eventDue.style.fontWeight = '600';
-            eventDue.textContent = `⏰ Due: ${this.formatTimeForDisplay(event.dueTime)}`;
-          }
-          eventDiv.appendChild(eventDue);
-        }
-
-        // Show completed date if available
-        if (event.completedTime) {
-          const eventCompleted = document.createElement('div');
-          eventCompleted.className = 'day-detail-event-time';
-          eventCompleted.style.color = '#10b981';
-          eventCompleted.textContent = `✅ Completed: ${this.formatTimeForDisplay(event.completedTime)}`;
-          eventDiv.appendChild(eventCompleted);
-        }
-
-        // Show start/end time if available
-        if (event.startTime) {
-          const eventTime = document.createElement('div');
-          eventTime.className = 'day-detail-event-time';
-          // Format time better for display
-          const startStr = this.formatTimeForDisplay(event.startTime);
-          const endStr = event.endTime ? this.formatTimeForDisplay(event.endTime) : '';
-          const timeLabel = event.dueTime ? '📅 Time:' : '📅';
-          eventTime.textContent = `${timeLabel} ${startStr}${endStr ? ' - ' + endStr : ''}`;
-          eventDiv.appendChild(eventTime);
-        }
-
-        if (event.location) {
-          const eventLocation = document.createElement('div');
-          eventLocation.className = 'day-detail-event-time';
-          eventLocation.textContent = `📍 ${event.location}`;
-          eventDiv.appendChild(eventLocation);
-        }
-
-        if (event.description) {
-          const eventDesc = document.createElement('div');
-          eventDesc.className = 'day-detail-event-description';
-          eventDesc.textContent = event.description;
-          eventDiv.appendChild(eventDesc);
-        }
-
-        eventsContainer.appendChild(eventDiv);
-      });
+      this.selectedDayTitle.textContent = this.selectedDate.toLocaleDateString('en-US', options);
     }
 
-    modal.appendChild(header);
-    modal.appendChild(eventsContainer);
-    overlay.appendChild(modal);
+    // Clear and populate events
+    this.eventsContainer.innerHTML = '';
 
-    // Close on overlay click
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.remove();
-      }
-    });
+    if (eventsForDay.length === 0) {
+      const noEventsMsg = document.createElement('div');
+      noEventsMsg.className = 'no-events-message';
+      noEventsMsg.textContent = 'No assignments for this day';
+      this.eventsContainer.appendChild(noEventsMsg);
+    } else {
+      // Sort by completion status (incomplete first), then by due/start time
+      eventsForDay.sort((a, b) => {
+        if (a.isCompleted && !b.isCompleted) return 1;
+        if (!a.isCompleted && b.isCompleted) return -1;
+        const ta = ICalParser.iCalDateToTimestamp(a.dueRaw || a.startRaw);
+        const tb = ICalParser.iCalDateToTimestamp(b.dueRaw || b.startRaw);
+        return ta - tb;
+      });
 
-    // Add to body with fixed positioning
-    document.body.appendChild(overlay);
-    console.log('Overlay appended to body with fixed positioning');
-    console.log('Overlay element:', overlay);
-    console.log('Overlay display:', window.getComputedStyle(overlay).display);
-    console.log('Overlay z-index:', window.getComputedStyle(overlay).zIndex);
+      eventsForDay.forEach(event => {
+        const eventElement = this.createEventElement(event);
+        this.eventsContainer.appendChild(eventElement);
+      });
+    }
   }
 
   formatTimeForDisplay(timeStr) {
@@ -1147,18 +972,30 @@ class UIController {
     // Save updated completion status
     await chrome.storage.local.set({ completedAssignments });
 
-    // Re-render both views
-    this.renderCalendar();
-    this.applyFilter();
+    // Re-render week view and events
+    this.renderWeekView();
+    this.showEventsForSelectedDay();
   }
 
   async loadSavedData() {
     try {
-      const data = await chrome.storage.local.get(['icalUrl', 'events', 'lastUpdated']);
+      const data = await chrome.storage.local.get(['icalUrl', 'events', 'lastUpdated', 'completedAssignments']);
 
       if (data.icalUrl && data.events) {
         this.icalLinkInput.value = data.icalUrl;
-        this.displayEvents(data.events);
+
+        // Merge completion status with events
+        const completedAssignments = data.completedAssignments || {};
+        const events = data.events.map(event => {
+          const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+          if (completedAssignments[eventId]) {
+            event.isCompleted = true;
+            event.completedDate = completedAssignments[eventId].completedDate;
+          }
+          return event;
+        });
+
+        this.displayEvents(events);
         console.log('Loaded saved data from storage');
       }
     } catch (error) {
@@ -1191,7 +1028,6 @@ class UIController {
   openSettings() {
     // Load current settings
     this.settingsIcalLink.value = this.icalLinkInput.value;
-    this.loadSavedCalendars();
     this.displaySubjectTags();
 
     // Switch to settings view
@@ -1246,65 +1082,10 @@ class UIController {
     }
   }
 
-  async addCalendar() {
-    const url = this.settingsIcalLink.value.trim();
-    if (!url) {
-      alert('Please enter a valid iCal URL');
-      return;
-    }
-
-    // Add to saved calendars
-    if (!this.savedCalendars.includes(url)) {
-      this.savedCalendars.push(url);
-      await chrome.storage.local.set({ savedCalendars: this.savedCalendars });
-      this.loadSavedCalendars();
-    }
-  }
-
-  async loadSavedCalendars() {
-    const data = await chrome.storage.local.get(['savedCalendars']);
-    this.savedCalendars = data.savedCalendars || [];
-
-    // Display saved calendars
-    this.savedCalendarsDiv.innerHTML = '';
-    if (this.savedCalendars.length === 0) {
-      this.savedCalendarsDiv.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">No saved calendars</p>';
-    } else {
-      this.savedCalendars.forEach((url, index) => {
-        const item = document.createElement('div');
-        item.className = 'saved-calendar-item';
-
-        const urlSpan = document.createElement('span');
-        urlSpan.className = 'calendar-url';
-        urlSpan.textContent = url;
-        urlSpan.style.cursor = 'pointer';
-        urlSpan.addEventListener('click', () => {
-          this.settingsIcalLink.value = url;
-        });
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-calendar';
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => this.deleteCalendar(index));
-
-        item.appendChild(urlSpan);
-        item.appendChild(deleteBtn);
-        this.savedCalendarsDiv.appendChild(item);
-      });
-    }
-  }
-
-  async deleteCalendar(index) {
-    this.savedCalendars.splice(index, 1);
-    await chrome.storage.local.set({ savedCalendars: this.savedCalendars });
-    this.loadSavedCalendars();
-  }
-
   async clearAllData() {
     if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
       await chrome.storage.local.clear();
       this.events = [];
-      this.savedCalendars = [];
       this.subjectTags = {};
       this.icalLinkInput.value = '';
       this.settingsIcalLink.value = '';
@@ -1314,7 +1095,6 @@ class UIController {
       this.autoRefreshCheckbox.checked = false;
       this.enableRemindersCheckbox.checked = true;
       this.reminderHoursSelect.value = '24';
-      this.loadSavedCalendars();
       this.loadSubjectTags();
       this.closeSettings();
     }
@@ -1354,19 +1134,24 @@ class UIController {
   // Subject tag methods
   async loadSubjectTags() {
     const data = await chrome.storage.local.get(['subjectTags']);
-    this.subjectTags = data.subjectTags || {
-      'BIOLOGY': '#10b981',
-      'COMPUTER SCIENCE': '#3b82f6',
-      'ENGLISH': '#f59e0b',
-      'MATH': '#ef4444',
-      'HISTORY': '#8b5cf6'
-    };
+    // Start with empty tags - colors will be dynamically generated
+    this.subjectTags = data.subjectTags || {};
     this.displaySubjectTags();
   }
 
   displaySubjectTags() {
     this.subjectTagsDiv.innerHTML = '';
-    Object.entries(this.subjectTags).forEach(([name, color]) => {
+
+    const tags = Object.entries(this.subjectTags);
+    if (tags.length === 0) {
+      const emptyMsg = document.createElement('p');
+      emptyMsg.style.cssText = 'color: #9ca3af; font-size: 12px; margin: 0;';
+      emptyMsg.textContent = 'Subject colors will appear here after loading your calendar';
+      this.subjectTagsDiv.appendChild(emptyMsg);
+      return;
+    }
+
+    tags.forEach(([name, color]) => {
       const tagDiv = document.createElement('div');
       tagDiv.className = 'subject-tag-item';
 
@@ -1403,22 +1188,86 @@ class UIController {
   }
 
   getSubjectFromTitle(title) {
-    // Extract subject from title (e.g., "ADV. BIOLOGY - B:" -> "BIOLOGY")
-    const subjectMatch = title.match(/(?:ADV\.\s+)?([A-Z][A-Z\s]+?)(?:\s*-\s*[A-Z\d])?:/);
+    // Extract subject from title
+    // Handles formats like:
+    // - "ADV. BIOLOGY - B:" -> "BIOLOGY"
+    // - "ADV. COMPUTER SCIENCE: SOFTWARE ENGINEERING/Fa - D:" -> "COMPUTER SCIENCE"
+    // - "ENGLISH 11/Fa - C2:" -> "ENGLISH"
+    // - "UNITED STATES HISTORY - E:" -> "UNITED STATES HISTORY"
+
+    // Pattern: optional "ADV. ", then class name (letters, spaces, numbers),
+    // optional subtitle/semester, then " - SECTION:"
+    const subjectMatch = title.match(/^(?:ADV\.\s+)?([A-Z][A-Z\s]*[A-Z])(?:[\s:\/]|[0-9]|$)/);
     if (subjectMatch) {
-      const subject = subjectMatch[1].trim();
+      let subject = subjectMatch[1].trim();
+      // Remove trailing numbers (like "ENGLISH 11" -> "ENGLISH")
+      subject = subject.replace(/\s+\d+$/, '');
+
       // Check if we have a tag for this subject
       for (const tag in this.subjectTags) {
         if (subject.includes(tag) || tag.includes(subject)) {
           return { name: tag, color: this.subjectTags[tag] };
         }
       }
+
+      // If no existing tag, create one with a default color and save it
+      const color = this.getDefaultColorForSubject(subject);
+      this.subjectTags[subject] = color;
+      // Save asynchronously (don't await to avoid blocking)
+      chrome.storage.local.set({ subjectTags: this.subjectTags });
+      return { name: subject, color: color };
     }
     return null;
+  }
+
+  getDefaultColorForSubject(subject) {
+    // Generate a consistent color based on subject name using a spread-out palette
+    // Colors are intentionally far apart in hue to avoid similar-looking shades
+    const colors = [
+      '#e63946', // red
+      '#f77f00', // orange
+      '#e9c46a', // yellow
+      '#2a9d8f', // teal
+      '#118ab2', // blue
+      '#8338ec', // purple
+      '#ff006e', // magenta
+      '#8ac926', // lime
+      '#06d6a0', // mint
+      '#b56576', // rose brown
+      '#3d405b', // slate
+      '#ffb703'  // amber
+    ];
+    let hash = 0;
+    for (let i = 0; i < subject.length; i++) {
+      hash = subject.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  getCleanTitle(title) {
+    // Remove class prefix from title
+    // Handles formats like:
+    // - "ADV. BIOLOGY - B: Assignment" -> "Assignment"
+    // - "ADV. COMPUTER SCIENCE: SOFTWARE ENGINEERING/Fa - D: Task" -> "Task"
+    // - "ENGLISH 11/Fa - C2: Read chapter" -> "Read chapter"
+    // - "UNITED STATES HISTORY - E: No homework" -> "No homework"
+
+    // Pattern: optional "ADV. ", class name with optional subtitle/semester, " - SECTION: ", then content
+    const cleanMatch = title.match(/^(?:ADV\.\s+)?[A-Z][A-Z0-9\s:\/]+-\s*[A-Z0-9]+:\s*(.+)$/i);
+    if (cleanMatch) {
+      return cleanMatch[1].trim();
+    }
+    return title;
   }
 }
 
 // Initialize the UI when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  new UIController();
+  console.log('DOM loaded, initializing UIController...');
+  try {
+    new UIController();
+    console.log('UIController initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize UIController:', error);
+  }
 });
