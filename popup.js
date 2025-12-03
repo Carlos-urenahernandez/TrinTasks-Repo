@@ -422,6 +422,9 @@ class UIController {
     this.eventsList = document.getElementById('eventsList');
     this.eventsContainer = document.getElementById('eventsContainer');
     this.noData = document.getElementById('noData');
+    this.filterSelect = document.getElementById('filterSelect');
+    this.filterCurrent = document.getElementById('filterCurrent');
+    this.filterOptions = document.getElementById('filterOptions');
 
     // Week view elements
     this.weekView = document.getElementById('weekView');
@@ -452,6 +455,7 @@ class UIController {
     this.events = [];
     this.subjectTags = {};
     this.isSettingsView = false;
+    this.filterMode = 'all';
 
     // Week view state
     this.currentWeekStart = this.getWeekStart(new Date());
@@ -494,6 +498,16 @@ class UIController {
     this.autoRefreshCheckbox.addEventListener('change', () => this.saveSettings());
     this.enableRemindersCheckbox.addEventListener('change', () => this.saveSettings());
     this.reminderHoursSelect.addEventListener('change', () => this.saveSettings());
+
+    // Filter selector click
+    if (this.filterOptions) {
+      this.filterOptions.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.getAttribute('data-mode');
+          this.setFilterMode(mode);
+        });
+      });
+    }
   }
 
   async handleParse() {
@@ -809,7 +823,8 @@ class UIController {
   }
 
   showEventsForSelectedDay() {
-    const eventsForDay = this.getEventsForDate(this.selectedDate);
+    let eventsForDay = this.getEventsForDate(this.selectedDate);
+    eventsForDay = this.applyFilter(eventsForDay);
 
     // Update title
     const options = { weekday: 'long', month: 'long', day: 'numeric' };
@@ -984,14 +999,14 @@ class UIController {
 
   async loadSavedData() {
     try {
-      const data = await chrome.storage.local.get(['icalUrl', 'events', 'lastUpdated', 'completedAssignments']);
+      const data = await chrome.storage.local.get(['icalUrl', 'events', 'completedAssignments', 'lastRefreshSummary']);
 
       if (data.icalUrl && data.events) {
         this.icalLinkInput.value = data.icalUrl;
 
-        // Merge completion status with events
+        // Merge completion status with cached events
         const completedAssignments = data.completedAssignments || {};
-        const events = data.events.map(event => {
+        const cachedEvents = data.events.map(event => {
           const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
           if (completedAssignments[eventId]) {
             event.isCompleted = true;
@@ -1000,8 +1015,14 @@ class UIController {
           return event;
         });
 
-        this.displayEvents(events);
-        console.log('Loaded saved data from storage');
+        this.displayEvents(cachedEvents);
+
+        // Show last refresh summary (from background refresh)
+        if (data.lastRefreshSummary) {
+          this.showRefreshToast(data.lastRefreshSummary);
+        }
+
+        console.log('Loaded cached data from storage');
       }
     } catch (error) {
       console.error('Failed to load from storage:', error);
@@ -1061,11 +1082,29 @@ class UIController {
     this.isSettingsView = false;
   }
 
+  setFilterMode(mode) {
+    if (!mode) return;
+    this.filterMode = mode;
+    const label = mode === 'active' ? 'Uncompleted' : mode === 'completed' ? 'Completed' : 'All';
+    if (this.filterCurrent) this.filterCurrent.textContent = label;
+    this.showEventsForSelectedDay();
+  }
+
+  applyFilter(events) {
+    if (this.filterMode === 'completed') {
+      return events.filter(e => e.isCompleted);
+    }
+    if (this.filterMode === 'active') {
+      return events.filter(e => !e.isCompleted);
+    }
+    return events;
+  }
+
   async saveSettings() {
     // Save all settings
     const autoRefresh = this.autoRefreshCheckbox.checked;
     const enableReminders = this.enableRemindersCheckbox.checked;
-    const reminderHours = this.reminderHoursSelect.value;
+    const reminderHours = parseInt(this.reminderHoursSelect.value, 10) || 24;
 
     await chrome.storage.local.set({
       autoRefresh,
@@ -1073,7 +1112,7 @@ class UIController {
       reminderHours,
       reminderSettings: {
         enabled: enableReminders,
-        intervals: [24, 16, 4, 1]
+        hours: reminderHours
       }
     });
 
@@ -1105,7 +1144,7 @@ class UIController {
   }
 
   async loadSettings() {
-    const data = await chrome.storage.local.get(['autoRefresh', 'enableReminders', 'reminderHours']);
+    const data = await chrome.storage.local.get(['autoRefresh', 'enableReminders', 'reminderHours', 'reminderSettings']);
 
     // Load auto-refresh setting
     if (data.autoRefresh) {
@@ -1117,9 +1156,8 @@ class UIController {
     this.enableRemindersCheckbox.checked = data.enableReminders !== false;
 
     // Load reminder hours (default to 24)
-    if (data.reminderHours) {
-      this.reminderHoursSelect.value = data.reminderHours;
-    }
+    const hrs = (data.reminderSettings && data.reminderSettings.hours) || data.reminderHours || 24;
+    this.reminderHoursSelect.value = String(hrs);
   }
 
   setupAutoRefresh() {
@@ -1264,6 +1302,22 @@ class UIController {
     return title;
   }
 
+  showRefreshToast(summary) {
+    const toast = document.getElementById('refreshToast');
+    if (!toast || !summary) return;
+
+    const { added = 0, updated = 0, removed = 0, timestamp } = summary;
+    toast.textContent = `Calendar refreshed: +${added} added, ${updated} updated, ${removed} removed${timestamp ? ` · ${new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`;
+    toast.classList.remove('hidden');
+    toast.classList.add('visible');
+
+    clearTimeout(this.toastTimeout);
+    this.toastTimeout = setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 5000);
+  }
+
   animateCompletion(target) {
     if (!target) return;
     target.classList.add('completing');
@@ -1279,7 +1333,7 @@ class UIController {
       target.style.transform = '';
       target.style.opacity = '';
       target.classList.add('moving-down');
-    }, 350);
+    }, 900); // wait for confetti to finish falling
     this.launchConfetti(target);
   }
 
@@ -1312,6 +1366,9 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     new UIController();
     console.log('UIController initialized successfully');
+    requestAnimationFrame(() => {
+      document.body.classList.add('popup-ready');
+    });
   } catch (error) {
     console.error('Failed to initialize UIController:', error);
   }

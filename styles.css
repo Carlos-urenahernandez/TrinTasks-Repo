@@ -36,6 +36,14 @@ body {
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+body.popup-ready .container {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 h1 {
@@ -192,6 +200,27 @@ button:active {
   display: none !important;
 }
 
+.refresh-toast {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  max-width: 320px;
+}
+
+.refresh-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .no-data {
   padding: 60px 30px;
   text-align: center;
@@ -204,9 +233,9 @@ button:active {
 }
 
 .event {
-  background: #f9fafb;
+  background: #f6f7f2;
   backdrop-filter: blur(10px);
-  border: 1px solid #e5e7eb;
+  border: 1px solid #dce6cc;
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 10px;
@@ -216,35 +245,135 @@ button:active {
 
 .event:hover {
   background: #fff;
-  border-color: #d1d5db;
+  border-color: #c3d9a5;
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(31, 42, 30, 0.12);
+}
+
+.event.completing {
+  background: linear-gradient(135deg, #ecfdf3 0%, #d1fae5 100%);
+  border-color: #34d399;
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.25);
+}
+
+.event.moving-down {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 8px;
+  width: 8px;
+  height: 14px;
+  border-radius: 3px;
+  animation: confettiFall 0.9s ease-out forwards;
+  transform: rotate(var(--confetti-rotation, 0deg));
+  opacity: 0.95;
+}
+
+.confetti-piece:nth-child(odd) {
+  animation-duration: 1s;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) scale(1) rotate(var(--confetti-rotation, 0deg));
+    opacity: 0.95;
+  }
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(80px) scale(0.9) rotate(calc(var(--confetti-rotation, 0deg) + 20deg));
+    opacity: 0;
+  }
 }
 
 .event.completed {
-  background: #f0fdf4;
-  border-color: #86efac;
-  opacity: 0.85;
+  background: #eef4e2;
+  border-color: #b3d089;
+  opacity: 0.9;
 }
 
 .event.completed:hover {
   opacity: 1;
-  background: #dcfce7;
+  background: #e5efd7;
 }
 
 .event-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   margin-bottom: 8px;
 }
 
 .event-checkbox {
-  margin-top: 2px;
-  width: 18px;
-  height: 18px;
+  margin-top: 0;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  accent-color: #10b981;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #fff;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  position: relative;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.event-checkbox:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.event-checkbox:checked {
+  background: #10b981;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.event-checkbox::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 12px;
+  border: 2px solid white;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0);
+  opacity: 0;
+}
+
+.event-checkbox:checked::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(45deg) scale(1);
+}
+
+.event-checkbox.checked-anim::after {
+  opacity: 1;
+  animation: drawCheck 0.25s ease-out forwards;
+}
+
+@keyframes drawCheck {
+  0% {
+    transform: translate(-50%, -50%) rotate(45deg) scale(0);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1);
+  }
 }
 
 .event-title {
@@ -255,9 +384,51 @@ button:active {
   flex: 1;
 }
 
+.event-title .title-text {
+  position: relative;
+  display: inline-block;
+}
+
+.event.completed .title-text {
+  color: #6b7280;
+}
+
+.event.completing .title-text::after,
+.event.completed .title-text::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  background: #6b7280;
+  transform-origin: left center;
+  transform: scaleX(0) translateY(-50%);
+  opacity: 0;
+}
+
+.event.completing .title-text::after {
+  opacity: 1;
+  animation: strikeDraw 0.55s ease forwards;
+}
+
+.event.completed .title-text::after {
+  opacity: 1;
+  transform: scaleX(1) translateY(-50%);
+}
+
+@keyframes strikeDraw {
+  0% {
+    transform: scaleX(0) translateY(-50%);
+  }
+  100% {
+    transform: scaleX(1) translateY(-50%);
+  }
+}
+
 .event-details {
   font-size: 13px;
-  color: #4b5563;
+  color: #2f3a2d;
 }
 
 .event-detail {
@@ -268,13 +439,13 @@ button:active {
 
 .event-detail-label {
   font-weight: 600;
-  color: #6b7280;
+  color: #4b5b48;
   min-width: 75px;
   font-size: 12px;
 }
 
 .event-detail-value {
-  color: #4b5563;
+  color: #2f3a2d;
   flex: 1;
   word-wrap: break-word;
   font-size: 12px;
@@ -286,7 +457,7 @@ button:active {
   border-top: 1px solid #e5e7eb;
   font-size: 12px;
   line-height: 1.5;
-  color: #6b7280;
+  color: #4b5b48;
 }
 
 /* Header buttons */
@@ -488,6 +659,10 @@ button:active {
   padding: 12px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .events-list-header h2 {
@@ -495,6 +670,80 @@ button:active {
   font-size: 16px;
   font-weight: 600;
   color: #1f2937;
+}
+
+.filter-select {
+  position: relative;
+  background: #d6e8c2;
+  border: 1px solid #c3d9a5;
+  border-radius: 10px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2a1e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+  min-width: 70px;
+}
+
+.filter-select:hover {
+  box-shadow: 0 6px 14px rgba(31, 42, 30, 0.12);
+  gap: 8px;
+}
+
+.filter-current {
+  white-space: nowrap;
+  text-align: center;
+  min-width: 40px;
+  flex: 0 0 auto;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: row;
+  order: -1;
+  gap: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, max-width 0.3s ease, margin-right 0.3s ease, padding-right 0.3s ease, gap 0.3s ease;
+  max-width: 0;
+  overflow: hidden;
+  border-right: 1px solid #c3d9a5;
+  padding-right: 0;
+  margin-right: 0;
+  flex: 0 0 0;
+}
+
+.filter-select:hover .filter-options {
+  opacity: 1;
+  pointer-events: auto;
+  max-width: 260px;
+  padding-right: 8px;
+  margin-right: 6px;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.filter-options button {
+  background: #f6f7f2;
+  border: 1px solid #c3d9a5;
+  color: #1f2a1e;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-options button:hover {
+  background: #d6e8c2;
+  border-color: #b3d089;
 }
 
 .events-container {
@@ -781,6 +1030,12 @@ button:active {
   font-size: 14px;
 }
 
+.settings-view .settings-note {
+  margin: 6px 0 0 26px;
+  font-size: 12px;
+  color: #4b5b48;
+}
+
 .settings-view .reminder-options {
   margin-top: 8px;
   margin-left: 28px;
@@ -808,6 +1063,12 @@ button:active {
 .settings-view .reminder-options select:focus {
   outline: none;
   border-color: #b3d089;
+}
+
+.settings-view select:disabled,
+.settings-view input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -885,10 +1146,12 @@ button:active {
 .settings-view .subject-tags-container {
   max-height: 200px;
   overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid #dce6cc;
   border-radius: 10px;
   padding: 8px;
   background: #f6f7f2;
+  scroll-behavior: smooth;
 }
 
 .settings-view .subject-tags-container:empty::before {

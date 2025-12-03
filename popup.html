@@ -13,6 +13,7 @@
         <button id="settingsBtn" class="settings-btn" title="Settings">Settings</button>
       </div>
     </div>
+    <div id="refreshToast" class="refresh-toast hidden"></div>
 
     <!-- Main View -->
     <div id="mainView">
@@ -46,6 +47,14 @@
       <div id="eventsList" class="events-list">
         <div class="events-list-header">
           <h2 id="selectedDayTitle">Today's Assignments</h2>
+          <div class="filter-select" id="filterSelect" title="Filter assignments">
+            <div class="filter-current" id="filterCurrent">All</div>
+            <div class="filter-options" id="filterOptions">
+              <button data-mode="all">All</button>
+              <button data-mode="active">Uncompleted</button>
+              <button data-mode="completed">Completed</button>
+            </div>
+          </div>
         </div>
         <div id="eventsContainer" class="events-container"></div>
       </div>
@@ -80,9 +89,10 @@
           <h3 class="settings-section-title">Notifications</h3>
           <div class="settings-group">
             <label class="checkbox-label">
-              <input type="checkbox" id="autoRefresh">
-              <span>Auto-refresh calendar every hour</span>
+              <input type="checkbox" id="autoRefresh" checked disabled>
+              <span>Calendar auto-refreshes every 30 minutes in the background</span>
             </label>
+            <p class="settings-note">Completion status is preserved; removed items are dropped automatically.</p>
           </div>
           <div class="settings-group">
             <label class="checkbox-label">
@@ -90,14 +100,15 @@
               <span>Enable assignment reminders</span>
             </label>
             <div class="reminder-options">
-              <label for="reminderHours">Remind me before:</label>
+              <label for="reminderHours">Reminder lead time:</label>
               <select id="reminderHours">
                 <option value="1">1 hour</option>
                 <option value="2">2 hours</option>
+                <option value="4">4 hours</option>
                 <option value="6">6 hours</option>
                 <option value="12">12 hours</option>
                 <option value="24" selected>24 hours</option>
-                <option value="48">2 days</option>
+                <option value="48">48 hours</option>
               </select>
             </div>
           </div>
