@@ -52,6 +52,7 @@ class ICalParser {
                    .replace(/&lsquo;/g, "'")
                    .replace(/&rsquo;/g, "'");
       event.title = this.decodeText(title.trim());
+      event.title = event.title.replace(/\s+\d+$/, '').trim(); // Trim trailing numeric suffixes
     } else {
       event.title = 'Untitled Event';
     }
@@ -581,8 +582,9 @@ class UIController {
       eventDiv.classList.add('completed');
     }
 
-    // Apply subject color if available
+    // Apply subject color if available; also extract full course name for display
     const subjectTag = this.getSubjectFromTitle(event.title);
+    const courseFullName = this.getCourseName(event.title) || (subjectTag ? subjectTag.name : '');
     if (subjectTag) {
       eventDiv.style.borderLeftWidth = '4px';
       eventDiv.style.borderLeftColor = subjectTag.color;
@@ -593,7 +595,16 @@ class UIController {
     const headerDiv = document.createElement('div');
     headerDiv.className = 'event-header';
 
-    if (event.isAssignment) {
+    // Get clean title without class prefix early to help infer assignmentness
+    const cleanTitle = this.getCleanTitle(event.title);
+    // Infer assignment status if parsing didn't mark it (useful for varied title formats)
+    const inferredIsAssignment = !!(
+      event.isAssignment ||
+      (cleanTitle && cleanTitle !== (event.title || '').trim()) ||
+      /\b(due|assignment|homework|task|read|submit|turn in)\b/i.test(event.title || '')
+    );
+
+    if (inferredIsAssignment) {
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'event-checkbox';
@@ -605,8 +616,6 @@ class UIController {
     const titleDiv = document.createElement('div');
     titleDiv.className = 'event-title';
 
-    // Get clean title without class prefix
-    const cleanTitle = this.getCleanTitle(event.title);
     let titleHtml = this.escapeHtml(cleanTitle);
 
     // Add progress indicator if available
@@ -636,11 +645,11 @@ class UIController {
       </div>`;
     }
 
-    // Show class/subject instead of start/end rows
-    if (subjectTag) {
+    // Show class (full course name) instead of start/end rows
+    if (courseFullName) {
       html += `<div class="event-detail">
         <span class="event-detail-label">Class:</span>
-        <span class="event-detail-value">${this.escapeHtml(subjectTag.name)}</span>
+        <span class="event-detail-value">${this.escapeHtml(courseFullName)}</span>
       </div>`;
     }
 
@@ -1262,6 +1271,19 @@ class UIController {
     return null;
   }
 
+  getCourseName(title) {
+    if (!title) return '';
+    // Find last colon which typically separates course info from the assignment title
+    const lastColon = title.lastIndexOf(':');
+    if (lastColon === -1) {
+      // No colon found; fallback to entire title minus trailing numbers
+      return title.replace(/\s+\d+$/, '').trim();
+    }
+    const coursePart = title.substring(0, lastColon).trim();
+    // Trim any trailing separators
+    return coursePart.replace(/[\-:;\|\/]\s*$/, '').trim();
+  }
+
   getDefaultColorForSubject(subject) {
     // Generate a consistent color based on subject name using a spread-out palette
     // Colors are intentionally far apart in hue to avoid similar-looking shades
@@ -1295,11 +1317,28 @@ class UIController {
     // - "UNITED STATES HISTORY - E: No homework" -> "No homework"
 
     // Pattern: optional "ADV. ", class name with optional subtitle/semester, " - SECTION: ", then content
+    if (!title) return '';
     const cleanMatch = title.match(/^(?:ADV\.\s+)?[A-Z][A-Z0-9\s:\/]+-\s*[A-Z0-9]+:\s*(.+)$/i);
     if (cleanMatch) {
-      return cleanMatch[1].trim();
+      return cleanMatch[1].trim().replace(/\s+\d+$/, '').trim();
     }
-    return title;
+
+    // Fallback: split on last colon to handle titles that have multiple colons
+    const lastColon = title.lastIndexOf(':');
+    if (lastColon !== -1 && lastColon < title.length - 1) {
+      const after = title.substring(lastColon + 1).trim();
+      return after.replace(/\s+\d+$/, '').trim();
+    }
+
+    // Another fallback: split on the first ' - ' occurrence
+    const dashIdx = title.indexOf(' - ');
+    if (dashIdx !== -1 && dashIdx < title.length - 1) {
+      const after = title.substring(dashIdx + 3).trim();
+      return after.replace(/\s+\d+$/, '').trim();
+    }
+
+    // Final fallback: trim trailing numeric suffixes
+    return title.replace(/\s+\d+$/, '').trim();
   }
 
   showRefreshToast(summary) {
