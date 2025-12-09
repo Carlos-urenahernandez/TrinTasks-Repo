@@ -1056,11 +1056,22 @@ class UIController {
 
         console.log('Loaded cached data from storage');
         return true;
+      } else {
+        // No data found; show setup instructions
+        this.showSetupInstructions();
       }
     } catch (error) {
       console.error('Failed to load from storage:', error);
+      // On error, show setup instructions as fallback
+      this.showSetupInstructions();
     }
     return false;
+  }
+
+  showSetupInstructions() {
+    this.inputSection.classList.remove('hidden');
+    this.noData.classList.remove('hidden');
+    this.mainContent.classList.add('hidden');
   }
 
   mergeCompletionStatus(events, completedAssignments) {
