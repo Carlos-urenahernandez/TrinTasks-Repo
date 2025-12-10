@@ -1,25 +1,88 @@
 // Background service worker for TrinTasks
+
+// Set up periodic alarms on install/startup
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.alarms.create('checkUpcomingAssignments', { periodInMinutes: 30 });
+  chrome.alarms.create('refreshCalendar', { periodInMinutes: 30 });
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  chrome.alarms.create('checkUpcomingAssignments', { periodInMinutes: 30 });
+  chrome.alarms.create('refreshCalendar', { periodInMinutes: 30 });
+});
+
+// Single consolidated alarm listener for all alarm types
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name.startsWith('reminder_')) {
-    // Get the event details from storage
+  console.log('Alarm fired:', alarm.name);
+
+  if (alarm.name === 'checkUpcomingAssignments') {
+    await checkUpcomingAssignments();
+  } else if (alarm.name === 'refreshCalendar') {
+    await refreshCalendarData();
+  } else if (alarm.name.startsWith('reminder_')) {
+    await handleReminderAlarm(alarm);
+  }
+});
+
+// Handle reminder alarm - show notification
+async function handleReminderAlarm(alarm) {
+  console.log('handleReminderAlarm called for:', alarm.name);
+
+  try {
     const data = await chrome.storage.local.get(['reminders', 'reminderHistory']);
     const reminders = data.reminders || {};
     const reminderHistory = data.reminderHistory || {};
     const reminder = reminders[alarm.name];
 
+    console.log('Reminder data:', reminder);
+
     if (reminder) {
-      // Create notification
-      chrome.notifications.create(alarm.name, {
+      // Get the icon URL - try multiple approaches
+      let iconUrl;
+      try {
+        iconUrl = chrome.runtime.getURL('icon-128.png');
+        console.log('Icon URL:', iconUrl);
+      } catch (e) {
+        console.warn('Failed to get icon URL:', e);
+        iconUrl = 'icon-128.png';
+      }
+
+      // Create notification - simplified version without buttons for better compatibility
+      // Buttons have limited support on Mac OS X
+      const notificationOptions = {
         type: 'basic',
-        iconUrl: 'icon-128.png', // You'll need to add an icon
-        title: '📚 Assignment Reminder',
-        message: reminder.message,
-        buttons: [
-          { title: 'Mark Complete' },
-          { title: 'Snooze 1 hour' }
-        ],
-        requireInteraction: true,
-        priority: 2
+        iconUrl: iconUrl,
+        title: 'TrinTasks - Assignment Reminder',
+        message: reminder.message || 'You have an upcoming assignment!',
+        priority: 2,
+        requireInteraction: true
+      };
+
+      console.log('Creating notification with options:', JSON.stringify(notificationOptions));
+
+      // Use Promise wrapper for better error handling
+      const notificationId = await new Promise((resolve, reject) => {
+        chrome.notifications.create(alarm.name, notificationOptions, (id) => {
+          const err = chrome.runtime.lastError;
+          if (err) {
+            console.error('Notification create error:', err.message);
+            reject(new Error(err.message));
+          } else {
+            console.log('Notification created with ID:', id);
+            resolve(id);
+          }
+        });
+      });
+
+      // Store success result
+      await chrome.storage.local.set({
+        lastNotificationResult: {
+          id: notificationId,
+          status: 'ok',
+          error: null,
+          timestamp: Date.now(),
+          message: 'Notification displayed successfully'
+        }
       });
 
       // Remember we sent this reminder so we don't re-create it
@@ -28,41 +91,33 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       // Remove the used reminder
       delete reminders[alarm.name];
       await chrome.storage.local.set({ reminders, reminderHistory });
+
+      console.log('Reminder processed successfully');
+    } else {
+      console.warn('No reminder data found for alarm:', alarm.name);
+      await chrome.storage.local.set({
+        lastNotificationResult: {
+          status: 'error',
+          error: 'No reminder data found for alarm: ' + alarm.name,
+          timestamp: Date.now()
+        }
+      });
     }
+  } catch (err) {
+    console.error('Error handling reminder alarm:', err);
+    await chrome.storage.local.set({
+      lastNotificationResult: {
+        status: 'error',
+        error: err.message || String(err),
+        timestamp: Date.now()
+      }
+    });
   }
-});
+}
 
-// Handle notification button clicks
-chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
-  if (notificationId.startsWith('reminder_')) {
-    if (buttonIndex === 0) {
-      // Mark as complete
-      const eventId = notificationId.replace('reminder_', '');
-      const data = await chrome.storage.local.get(['completedAssignments']);
-      const completedAssignments = data.completedAssignments || {};
-
-      completedAssignments[eventId] = {
-        completedDate: new Date().toISOString(),
-        title: 'Completed via reminder'
-      };
-
-      await chrome.storage.local.set({ completedAssignments });
-      chrome.notifications.clear(notificationId);
-    } else if (buttonIndex === 1) {
-      // Snooze for 1 hour
-      chrome.alarms.create(notificationId, { delayInMinutes: 60 });
-      chrome.notifications.clear(notificationId);
-    }
-  }
-});
-
-// Check for upcoming assignments periodically
-chrome.alarms.create('checkUpcomingAssignments', {
-  periodInMinutes: 30 // Check every 30 minutes
-});
-
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'checkUpcomingAssignments') {
+// Check for upcoming assignments and schedule reminders
+async function checkUpcomingAssignments() {
+  try {
     const data = await chrome.storage.local.get(['events', 'completedAssignments', 'reminderSettings', 'reminders', 'reminderHistory']);
     const events = data.events || [];
     const completedAssignments = data.completedAssignments || {};
@@ -70,35 +125,45 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const reminders = data.reminders || {};
     const reminderHistory = data.reminderHistory || {};
 
-    if (!settings.enabled) return;
+    if (!settings.enabled) {
+      console.log('Reminders disabled, skipping check');
+      return;
+    }
 
     const now = Date.now();
     const leadHours = parseInt(settings.hours, 10) || 24;
+    let scheduledCount = 0;
 
-    events.forEach(async (event) => {
+    // Use for...of loop instead of forEach to properly handle async
+    for (const event of events) {
       // Skip if not an assignment or already completed
-      if (!event.isAssignment || event.isCompleted) return;
+      if (!event.isAssignment || event.isCompleted) continue;
 
       const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
 
       // Skip if already completed
-      if (completedAssignments[eventId]) return;
+      if (completedAssignments[eventId]) continue;
 
       // Calculate time until due
       const dueTimestamp = ICalDateToTimestamp(event.dueRaw || event.startRaw);
       const timeUntilDue = dueTimestamp - now;
 
       // Skip overdue
-      if (timeUntilDue <= 0) return;
+      if (timeUntilDue <= 0) continue;
 
       const intervalMs = leadHours * 60 * 60 * 1000;
       const targetTime = dueTimestamp - intervalMs;
       const reminderId = `reminder_${eventId}_${leadHours}h`;
 
-      if (reminderHistory[reminderId]) return;
+      // Skip if already reminded
+      if (reminderHistory[reminderId]) continue;
+
+      // Skip if already scheduled
+      if (reminders[reminderId]) continue;
 
       if (targetTime <= now) {
         // If we're already past the target but before due, trigger soon
+        // Chrome requires minimum 0.5 minutes for alarms
         reminders[reminderId] = {
           eventId,
           title: event.title,
@@ -107,38 +172,94 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
           intervalHours: leadHours
         };
         reminderHistory[reminderId] = true;
-        chrome.alarms.create(reminderId, { delayInMinutes: 0.1 });
-        return;
+        chrome.alarms.create(reminderId, { delayInMinutes: 0.5 });
+        scheduledCount++;
+        console.log('Scheduled immediate reminder for:', event.title);
+      } else {
+        // Schedule for the future (minimum 0.5 minutes)
+        const delayMinutes = Math.max((targetTime - now) / (1000 * 60), 0.5);
+        reminders[reminderId] = {
+          eventId,
+          title: event.title,
+          message: `${event.title} is due in ${leadHours} hours!`,
+          dueTime: event.dueTime,
+          intervalHours: leadHours
+        };
+        chrome.alarms.create(reminderId, { delayInMinutes: delayMinutes });
+        scheduledCount++;
+        console.log('Scheduled future reminder for:', event.title, 'in', Math.round(delayMinutes), 'minutes');
       }
-
-      if (reminders[reminderId]) return;
-
-      const delayMinutes = Math.max((targetTime - now) / (1000 * 60), 0.1);
-      reminders[reminderId] = {
-        eventId,
-        title: event.title,
-        message: `${event.title} is due in ${leadHours} hours!`,
-        dueTime: event.dueTime,
-        intervalHours: leadHours
-      };
-      chrome.alarms.create(reminderId, { delayInMinutes: delayMinutes });
-    });
+    }
 
     await chrome.storage.local.set({ reminders, reminderHistory });
+    console.log('checkUpcomingAssignments complete. Scheduled:', scheduledCount, 'reminders');
+  } catch (err) {
+    console.error('Error in checkUpcomingAssignments:', err);
+  }
+}
+
+// Handle notification button clicks
+chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+  console.log('Notification button clicked:', notificationId, 'button:', buttonIndex);
+
+  if (notificationId.startsWith('reminder_')) {
+    // Extract the actual eventId from the reminder ID format: reminder_${eventId}_${leadHours}h
+    // We need to remove 'reminder_' prefix AND the '_XXh' suffix
+    const withoutPrefix = notificationId.replace('reminder_', '');
+    const lastUnderscoreIdx = withoutPrefix.lastIndexOf('_');
+    const eventId = lastUnderscoreIdx > 0 ? withoutPrefix.substring(0, lastUnderscoreIdx) : withoutPrefix;
+
+    if (buttonIndex === 0) {
+      // Mark as complete
+      const data = await chrome.storage.local.get(['completedAssignments', 'reminders']);
+      const completedAssignments = data.completedAssignments || {};
+      const reminders = data.reminders || {};
+      const reminder = reminders[notificationId];
+
+      completedAssignments[eventId] = {
+        completedDate: new Date().toISOString(),
+        title: reminder ? reminder.title : 'Completed via reminder'
+      };
+
+      await chrome.storage.local.set({ completedAssignments });
+      chrome.notifications.clear(notificationId);
+      console.log('Marked complete:', eventId);
+    } else if (buttonIndex === 1) {
+      // Snooze for 1 hour - reload reminder data first
+      const data = await chrome.storage.local.get(['reminders']);
+      const reminders = data.reminders || {};
+      const originalReminder = reminders[notificationId];
+
+      // Create a new snooze reminder
+      const snoozeId = `${notificationId}_snooze_${Date.now()}`;
+      if (originalReminder) {
+        reminders[snoozeId] = {
+          ...originalReminder,
+          message: `SNOOZED: ${originalReminder.title} - reminder snoozed 1 hour`
+        };
+      } else {
+        reminders[snoozeId] = {
+          eventId,
+          title: 'Snoozed Reminder',
+          message: 'Assignment reminder (snoozed)',
+          intervalHours: 1
+        };
+      }
+
+      await chrome.storage.local.set({ reminders });
+      chrome.alarms.create(snoozeId, { delayInMinutes: 60 });
+      chrome.notifications.clear(notificationId);
+      console.log('Snoozed reminder for 1 hour:', snoozeId);
+    }
   }
 });
 
-// Periodic calendar refresh to keep events current
-chrome.alarms.create('refreshCalendar', { periodInMinutes: 30 });
-
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'refreshCalendar') {
-    await refreshCalendarData();
-  }
+// Also handle notification click (not just buttons)
+chrome.notifications.onClicked.addListener((notificationId) => {
+  console.log('Notification clicked:', notificationId);
+  // Just clear the notification when clicked
+  chrome.notifications.clear(notificationId);
 });
-
-// Also refresh on startup
-refreshCalendarData();
 
 async function refreshCalendarData(overrideUrl) {
   try {
@@ -215,7 +336,7 @@ async function refreshCalendarData(overrideUrl) {
 }
 
 // Allow popup to request an immediate refresh when opened
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message && message.action === 'refreshCalendarNow') {
     const overrideUrl = message.icalUrl || null;
     if (overrideUrl) {
@@ -225,6 +346,52 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(summary => sendResponse({ success: true, summary }))
       .catch(error => sendResponse({ success: false, error: error?.message || 'Unknown error' }));
     return true; // keep the message channel open for async response
+  }
+
+  if (message && message.action === 'triggerTestReminder') {
+    const leadHours = parseInt(message.leadHours, 10) || 24;
+    const reminderId = `reminder_test_${Date.now()}`;
+    // Chrome requires minimum 0.5 minutes (30 seconds) for alarms
+    const delayMinutes = 0.5;
+    const fireAt = Date.now() + (delayMinutes * 60 * 1000);
+    console.log('triggerTestReminder received', { leadHours, reminderId, delayMinutes, fireAt });
+
+    chrome.storage.local.get(['reminders', 'reminderHistory']).then(data => {
+      const reminders = data.reminders || {};
+      const reminderHistory = data.reminderHistory || {};
+
+      reminders[reminderId] = {
+        eventId: 'test',
+        title: 'Test Reminder',
+        message: `If you see this notification, reminders are working. Lead time setting: ${leadHours}h.`,
+        dueTime: new Date(Date.now() + leadHours * 60 * 60 * 1000).toLocaleString(),
+        intervalHours: leadHours
+      };
+
+      // Ensure test reminders are allowed to fire even if run multiple times
+      delete reminderHistory[reminderId];
+
+      const scheduledInfo = {
+        status: 'scheduled',
+        message: `Test reminder scheduled for ~30 seconds from now`,
+        alarm: reminderId,
+        timestamp: Date.now()
+      };
+
+      chrome.storage.local.set({ reminders, reminderHistory, lastNotificationResult: scheduledInfo }).then(() => {
+        // Use delayInMinutes which is more reliable than absolute 'when'
+        chrome.alarms.create(reminderId, { delayInMinutes: delayMinutes });
+        console.log('Test alarm created:', reminderId);
+        sendResponse({ success: true, alarm: reminderId, when: fireAt });
+      }).catch(err => {
+        console.error('Failed to save test reminder:', err);
+        sendResponse({ success: false, error: err?.message || 'Failed to save test reminder' });
+      });
+    }).catch(err => {
+      console.error('Failed to get storage for test reminder:', err);
+      sendResponse({ success: false, error: err?.message || 'Failed to create test reminder' });
+    });
+    return true; // keep channel open
   }
 });
 
@@ -468,3 +635,40 @@ function ICalDateToTimestamp(dateTime) {
 
   return 0;
 }
+
+// Initialize on service worker startup (after helpers are defined to avoid TDZ errors)
+(async function initializeServiceWorker() {
+  console.log('TrinTasks service worker initializing...');
+
+  // Ensure periodic alarms exist
+  const existingAlarms = await chrome.alarms.getAll();
+  const alarmNames = existingAlarms.map(a => a.name);
+
+  if (!alarmNames.includes('checkUpcomingAssignments')) {
+    chrome.alarms.create('checkUpcomingAssignments', { periodInMinutes: 30 });
+    console.log('Created checkUpcomingAssignments alarm');
+  }
+
+  if (!alarmNames.includes('refreshCalendar')) {
+    chrome.alarms.create('refreshCalendar', { periodInMinutes: 30 });
+    console.log('Created refreshCalendar alarm');
+  }
+
+  // Refresh calendar data
+  try {
+    await refreshCalendarData();
+    console.log('Calendar data refreshed on startup');
+  } catch (err) {
+    console.warn('Failed to refresh calendar on startup:', err);
+  }
+
+  // Check for upcoming assignments and schedule reminders
+  try {
+    await checkUpcomingAssignments();
+    console.log('Checked upcoming assignments on startup');
+  } catch (err) {
+    console.warn('Failed to check assignments on startup:', err);
+  }
+
+  console.log('TrinTasks service worker initialized');
+})();
