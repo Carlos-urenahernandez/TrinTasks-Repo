@@ -102,12 +102,93 @@ h2 {
 .main-content {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  gap: 12px;
   overflow: hidden;
   min-height: 0;
   position: relative;
   background: var(--surface);
   padding: 12px;
+}
+
+.left-column {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.major-assignments-bar {
+  width: 260px;
+  flex: 0 0 260px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--page-bg));
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  overflow-y: auto;
+}
+
+.major-bar-header h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: var(--text-main);
+}
+.major-bar-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.major-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.major-item {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-main);
+}
+
+.major-item .major-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 760px) {
+  .major-assignments-bar { display: none !important; }
+  .main-content { flex-direction: column; }
+}
+
+/* Left column should flex to fill available space; do not reserve space when sidebar is hidden */
+.left-column {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Slightly reduce padding and font sizes inside the left column so the layout fits better */
+.left-column .week-view,
+.left-column .events-list {
+  padding: 8px;
+}
+
+.left-column .week-header h2,
+.left-column .events-list-header h2 {
+  font-size: 15px;
+}
+
+.left-column .week-day {
+  padding: 8px 6px;
+}
+
+.left-column .events-container {
+  padding: 8px;
 }
 
 label {
