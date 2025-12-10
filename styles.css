@@ -10,6 +10,7 @@ html {
   height: 600px;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 /* CSS Variables */
@@ -53,9 +54,9 @@ body {
   height: 600px;
   padding: 0;
   background: var(--surface);
-  border: 2px solid var(--black);
-  border-radius: var(--radius);
-  box-shadow: 4px 4px 0px var(--black);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -284,8 +285,8 @@ button:active {
 
 .week-header h2 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--black);
 }
 
@@ -407,8 +408,8 @@ button:active {
 
 .events-list-header h2 {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--black);
 }
 
@@ -1189,6 +1190,12 @@ body.theme-midnight {
 body.theme-midnight .header {
   background: #252b3d;
   border-bottom-color: #cbd5e1;
+}
+
+body.theme-midnight .settings-btn {
+  background: #60a5fa;
+  color: #1a1f2e;
+  border-color: #cbd5e1;
 }
 
 body.theme-midnight .week-view {
