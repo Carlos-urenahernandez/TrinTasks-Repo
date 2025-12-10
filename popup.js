@@ -455,6 +455,11 @@ class UIController {
     // Subject tags elements
     this.subjectTagsDiv = document.getElementById('subjectTags');
 
+    // Major assignments sidebar elements
+    this.majorAssignmentsBar = document.getElementById('majorAssignmentsBar');
+    this.majorListDiv = document.getElementById('majorList');
+    this.showMajorAssignmentsCheckbox = document.getElementById('showMajorAssignments');
+
     this.events = [];
     this.subjectTags = {};
     this.currentTheme = 'fern';
@@ -517,6 +522,13 @@ class UIController {
     }
     this.enableRemindersCheckbox.addEventListener('change', () => this.saveSettings());
     this.reminderHoursSelect.addEventListener('change', () => this.saveSettings());
+
+    if (this.showMajorAssignmentsCheckbox) {
+      this.showMajorAssignmentsCheckbox.addEventListener('change', () => {
+        this.toggleMajorBarVisibility(this.showMajorAssignmentsCheckbox.checked);
+        this.saveSettings();
+      });
+    }
 
     // Filter selector click
     if (this.filterOptions) {
@@ -606,6 +618,91 @@ class UIController {
     // Show week view and events for selected day (today by default)
     this.renderWeekView();
     this.showEventsForSelectedDay();
+    // Populate major assignments sidebar (if enabled)
+    this.updateMajorAssignmentsBar();
+  }
+
+  toggleMajorBarVisibility(show) {
+    if (!this.majorAssignmentsBar) return;
+    if (show) {
+      this.majorAssignmentsBar.classList.remove('hidden');
+    } else {
+      this.majorAssignmentsBar.classList.add('hidden');
+    }
+  }
+
+  isMajorAssignment(event) {
+    if (!event) return false;
+    const text = `${event.title || ''} ${event.description || ''}`;
+    // Keywords that indicate major assignments
+    const re = /\b(test|quiz|exam|midterm|final|essay|paper|project|presentation|lab exam|oral exam)\b/i;
+    return re.test(text);
+  }
+
+  updateMajorAssignmentsBar() {
+    if (!this.majorListDiv || !this.majorAssignmentsBar) return;
+
+    // Respect settings checkbox if present
+    const showSetting = this.showMajorAssignmentsCheckbox ? this.showMajorAssignmentsCheckbox.checked : false;
+    if (!showSetting) {
+      this.majorAssignmentsBar.classList.add('hidden');
+      return;
+    }
+
+    // Build list of major assignments that fall within the next 14 days, sorted by due date ascending
+    const now = Date.now();
+    const twoWeeksMs = 14 * 24 * 60 * 60 * 1000;
+    const majors = (this.events || []).filter(e => {
+      if (!this.isMajorAssignment(e)) return false;
+      const ts = ICalParser.iCalDateToTimestamp(e.dueRaw || e.startRaw) || 0;
+      return ts >= now && ts <= (now + twoWeeksMs);
+    });
+    majors.sort((a, b) => {
+      const ta = ICalParser.iCalDateToTimestamp(a.dueRaw || a.startRaw) || 0;
+      const tb = ICalParser.iCalDateToTimestamp(b.dueRaw || b.startRaw) || 0;
+      return ta - tb;
+    });
+
+    this.majorListDiv.innerHTML = '';
+    if (majors.length === 0) {
+      const p = document.createElement('div');
+      p.className = 'major-empty';
+      p.style.color = 'var(--text-muted)';
+      p.style.fontSize = '13px';
+      p.textContent = 'No major assignments found';
+      this.majorListDiv.appendChild(p);
+      return;
+    }
+
+    majors.forEach(ev => {
+      const item = document.createElement('div');
+      item.className = 'major-item';
+      const title = document.createElement('div');
+      title.className = 'major-title';
+      title.textContent = this.getCleanTitle(ev.title || ev.summary || 'Untitled');
+      const meta = document.createElement('div');
+      meta.className = 'major-meta';
+      const when = ev.dueTime || ev.startTime || '';
+      meta.textContent = when;
+      item.appendChild(title);
+      item.appendChild(meta);
+      // clicking focuses the date/day in the main view
+      item.addEventListener('click', () => {
+        if (ev.dueRaw || ev.startRaw) {
+          const raw = ev.dueRaw || ev.startRaw;
+          const datePart = (raw.split('T')[0] || raw).replace(/\D/g, '').substring(0,8);
+          if (datePart.length === 8) {
+            const y = parseInt(datePart.substring(0,4),10);
+            const m = parseInt(datePart.substring(4,6),10)-1;
+            const d = parseInt(datePart.substring(6,8),10);
+            this.selectedDate = new Date(y,m,d);
+            this.renderWeekView();
+            this.showEventsForSelectedDay();
+          }
+        }
+      });
+      this.majorListDiv.appendChild(item);
+    });
   }
 
   createEventElement(event) {
@@ -1353,6 +1450,8 @@ class UIController {
         enabled: enableReminders,
         hours: reminderHours
       }
+      ,
+      showMajorAssignmentsBar: this.showMajorAssignmentsCheckbox ? !!this.showMajorAssignmentsCheckbox.checked : false
     });
 
     // If reminders are disabled, clear all scheduled reminder alarms
@@ -1367,6 +1466,8 @@ class UIController {
       clearInterval(this.autoRefreshInterval);
       this.autoRefreshInterval = null;
     }
+    // Update sidebar to reflect any setting change
+    this.updateMajorAssignmentsBar();
   }
 
   async clearAllReminderAlarms() {
@@ -1403,6 +1504,12 @@ class UIController {
       if (this.autoRefreshCheckbox) this.autoRefreshCheckbox.checked = false;
       this.enableRemindersCheckbox.checked = true;
       this.reminderHoursSelect.value = '24';
+      if (this.showMajorAssignmentsCheckbox) {
+        this.showMajorAssignmentsCheckbox.checked = false;
+      }
+      if (this.majorAssignmentsBar) {
+        this.majorAssignmentsBar.classList.add('hidden');
+      }
       this.loadSubjectTags();
       this.applyTheme('fern');
       this.closeSettings();
@@ -1410,7 +1517,7 @@ class UIController {
   }
 
   async loadSettings() {
-    const data = await chrome.storage.local.get(['autoRefresh', 'enableReminders', 'reminderHours', 'reminderSettings', 'theme']);
+    const data = await chrome.storage.local.get(['autoRefresh', 'enableReminders', 'reminderHours', 'reminderSettings', 'theme', 'showMajorAssignmentsBar']);
 
     // Load reminder settings (default to enabled)
     this.enableRemindersCheckbox.checked = data.enableReminders !== false;
@@ -1421,6 +1528,13 @@ class UIController {
 
     // Load theme
     this.applyTheme(data.theme || 'fern');
+
+    // Load major assignments sidebar setting
+    const showMajor = data.showMajorAssignmentsBar === true;
+    if (this.showMajorAssignmentsCheckbox) {
+      this.showMajorAssignmentsCheckbox.checked = showMajor;
+    }
+    this.toggleMajorBarVisibility(showMajor);
   }
 
   setupAutoRefresh() {

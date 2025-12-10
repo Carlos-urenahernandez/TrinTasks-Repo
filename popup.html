@@ -33,31 +33,44 @@
     <div id="errorMessage" class="error hidden"></div>
 
     <div id="mainContent" class="main-content hidden">
-      <!-- Week View -->
-      <div id="weekView" class="week-view">
-        <div class="week-header">
-          <button id="prevWeek" class="nav-btn">‹</button>
-          <h2 id="weekTitle">This Week</h2>
-          <button id="nextWeek" class="nav-btn">›</button>
+      <div class="left-column">
+        <!-- Week View -->
+        <div id="weekView" class="week-view">
+          <div class="week-header">
+            <button id="prevWeek" class="nav-btn">‹</button>
+            <h2 id="weekTitle">This Week</h2>
+            <button id="nextWeek" class="nav-btn">›</button>
+          </div>
+          <div id="weekDays" class="week-days"></div>
         </div>
-        <div id="weekDays" class="week-days"></div>
-      </div>
 
-      <!-- Events for Selected Day -->
-      <div id="eventsList" class="events-list">
-        <div class="events-list-header">
-          <h2 id="selectedDayTitle">Today's Assignments</h2>
-          <div class="filter-select" id="filterSelect" title="Filter assignments">
-            <div class="filter-current" id="filterCurrent">All</div>
-            <div class="filter-options" id="filterOptions">
-              <button data-mode="all">All</button>
-              <button data-mode="active">Uncompleted</button>
-              <button data-mode="completed">Completed</button>
+        <!-- Events for Selected Day -->
+        <div id="eventsList" class="events-list">
+          <div class="events-list-header">
+            <h2 id="selectedDayTitle">Today's Assignments</h2>
+            <div class="filter-select" id="filterSelect" title="Filter assignments">
+              <div class="filter-current" id="filterCurrent">All</div>
+              <div class="filter-options" id="filterOptions">
+                <button data-mode="all">All</button>
+                <button data-mode="active">Uncompleted</button>
+                <button data-mode="completed">Completed</button>
+              </div>
             </div>
           </div>
+          <div id="eventsContainer" class="events-container"></div>
         </div>
-        <div id="eventsContainer" class="events-container"></div>
       </div>
+
+      <!-- Right-side Major Assignments Bar -->
+      <aside id="majorAssignmentsBar" class="major-assignments-bar hidden" aria-live="polite">
+        <div class="major-bar-header">
+          <h3>Major assignments</h3>
+          <div class="major-bar-note">Tests, quizzes, essays, projects</div>
+        </div>
+        <div id="majorList" class="major-list">
+          <!-- Items populated dynamically -->
+        </div>
+      </aside>
     </div>
 
       <div id="noData" class="no-data">
@@ -104,6 +117,12 @@
                 <option value="24" selected>24 hours</option>
                 <option value="48">48 hours</option>
               </select>
+            </div>
+            <div class="settings-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="showMajorAssignments">
+                <span>Show "Major assignments" side bar</span>
+              </label>
             </div>
           </div>
         </div>
