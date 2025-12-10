@@ -1355,12 +1355,38 @@ class UIController {
       }
     });
 
+    // If reminders are disabled, clear all scheduled reminder alarms
+    if (!enableReminders) {
+      await this.clearAllReminderAlarms();
+    }
+
     // Setup auto-refresh if enabled
     if (autoRefresh) {
       this.setupAutoRefresh();
     } else if (this.autoRefreshInterval) {
       clearInterval(this.autoRefreshInterval);
       this.autoRefreshInterval = null;
+    }
+  }
+
+  async clearAllReminderAlarms() {
+    try {
+      const alarms = await new Promise(resolve => chrome.alarms.getAll(resolve));
+      const reminderAlarms = alarms.filter(a => a.name && a.name.startsWith('reminder_'));
+
+      for (const alarm of reminderAlarms) {
+        await chrome.alarms.clear(alarm.name);
+      }
+
+      // Also clear stored reminders and history
+      await chrome.storage.local.set({
+        reminders: {},
+        reminderHistory: {}
+      });
+
+      console.log(`Cleared ${reminderAlarms.length} reminder alarms`);
+    } catch (err) {
+      console.error('Failed to clear reminder alarms:', err);
     }
   }
 
@@ -1948,6 +1974,20 @@ class UIController {
       '--card-border',
       '--toast-bg'
     ].forEach(v => root.style.removeProperty(v));
+  }
+
+  showMessageToast(message) {
+    const toast = document.getElementById('refreshToast');
+    if (!toast || !message) return;
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+    toast.classList.add('visible');
+
+    clearTimeout(this.toastTimeout);
+    this.toastTimeout = setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.classList.add('hidden'), 300);
+    }, 4000);
   }
 
   showRefreshToast(summary) {
