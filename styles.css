@@ -6,11 +6,10 @@
 }
 
 html {
-  width: 400px;
-  height: 520px;
+  width: 800px;
+  height: 600px;
   margin: 0;
   padding: 0;
-  overflow: hidden;
 }
 
 /* CSS Variables */
@@ -43,24 +42,20 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  width: 400px;
-  height: 520px;
-  min-width: 400px;
-  max-width: 400px;
-  min-height: 520px;
-  max-height: 520px;
+  width: 800px;
+  height: 600px;
+  min-width: 800px;
+  min-height: 600px;
 }
 
 .container {
-  width: 400px;
-  height: 520px;
-  max-width: 400px;
-  max-height: 520px;
+  width: 800px;
+  height: 600px;
   padding: 0;
   background: var(--surface);
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: 4px 4px 0px var(--black);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -80,17 +75,16 @@ body.popup-ready .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 16px 20px;
   background: var(--accent);
   color: white;
   border-bottom: 2px solid var(--black);
-  flex-shrink: 0;
 }
 
 .header h1 {
   color: white;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 22px;
   letter-spacing: -0.5px;
 }
 
@@ -114,12 +108,12 @@ h2 {
 }
 
 .settings-btn {
-  padding: 8px 14px;
+  padding: 10px 18px;
   background: var(--surface);
   color: var(--black);
   border: var(--border);
   border-radius: var(--radius);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.1s ease;
@@ -149,11 +143,10 @@ h2 {
 .input-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 16px 20px;
   background: var(--lime);
   border-bottom: 2px solid var(--black);
-  flex-shrink: 0;
 }
 
 label {
@@ -165,11 +158,11 @@ label {
 
 input[type="url"],
 input[type="text"] {
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--surface);
   border: var(--border);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: 14px;
   font-family: inherit;
   width: 100%;
   color: var(--text);
@@ -191,12 +184,12 @@ input[type="text"]:focus {
 
 /* Buttons */
 button {
-  padding: 10px 16px;
+  padding: 12px 20px;
   background: var(--accent);
   color: white;
   border: var(--border);
   border-radius: var(--radius);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   font-family: inherit;
   letter-spacing: 0;
@@ -219,7 +212,7 @@ button:active {
   background: var(--accent);
   color: white;
   border: var(--border);
-  padding: 10px 16px;
+  padding: 12px 20px;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
@@ -234,7 +227,7 @@ button:active {
   background: var(--danger);
   color: white;
   border: var(--border);
-  padding: 10px 16px;
+  padding: 12px 20px;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
@@ -249,7 +242,7 @@ button:active {
   background: var(--surface);
   color: var(--black);
   border: var(--border);
-  padding: 10px 16px;
+  padding: 12px 20px;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
@@ -269,8 +262,8 @@ button:active {
   min-height: 0;
   position: relative;
   background: var(--bg);
-  padding: 12px;
-  gap: 12px;
+  padding: 16px;
+  gap: 16px;
 }
 
 /* Week View */
@@ -278,32 +271,31 @@ button:active {
   background: var(--cyan);
   border: var(--border);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: 16px;
   box-shadow: var(--shadow);
-  flex-shrink: 0;
 }
 
 .week-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .week-header h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--black);
 }
 
 .nav-btn {
-  padding: 6px 10px;
+  padding: 8px 14px;
   background: var(--surface);
   color: var(--black);
   border: var(--border);
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
@@ -317,14 +309,14 @@ button:active {
 .week-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 8px;
 }
 
 .week-day {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 4px;
+  padding: 10px 6px;
   background: var(--surface);
   border: var(--border);
   border-radius: var(--radius);
@@ -360,30 +352,30 @@ button:active {
 }
 
 .week-day-name {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin-bottom: 1px;
-}
-
-.week-day-number {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--black);
   margin-bottom: 2px;
 }
 
+.week-day-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 4px;
+}
+
 .week-day-events {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--black);
   background: #f9a8d4;
-  border: 1px solid var(--black);
-  padding: 2px 5px;
+  border: 2px solid var(--black);
+  padding: 3px 8px;
   border-radius: var(--radius);
-  min-width: 18px;
+  min-width: 22px;
   text-align: center;
 }
 
@@ -404,19 +396,18 @@ button:active {
 }
 
 .events-list-header {
-  padding: 10px 12px;
+  padding: 14px 16px;
   background: var(--orange);
   border-bottom: var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 12px;
 }
 
 .events-list-header h2 {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--black);
 }
@@ -499,8 +490,7 @@ button:active {
 .events-container {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px;
+  padding: 14px;
   background: var(--bg);
 }
 
@@ -509,8 +499,8 @@ button:active {
   background: var(--surface);
   border: var(--border);
   border-radius: var(--radius);
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
   transition: all 0.1s ease;
   position: relative;
   box-shadow: var(--shadow-sm);
@@ -547,13 +537,13 @@ button:active {
 .event-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .event-checkbox {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
@@ -603,8 +593,8 @@ button:active {
 }
 
 .event-title {
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 14px;
   color: var(--black);
   word-wrap: break-word;
   flex: 1;
@@ -696,9 +686,8 @@ button:active {
 .settings-view {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
   background: var(--bg);
-  padding: 12px;
+  padding: 16px;
 }
 
 .settings-view.hidden {
@@ -711,10 +700,10 @@ button:active {
 
 .settings-section {
   background: var(--surface);
-  padding: 12px;
+  padding: 18px;
   border: var(--border);
   border-radius: var(--radius);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   box-shadow: var(--shadow);
 }
 
@@ -739,17 +728,17 @@ button:active {
 }
 
 .settings-section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--black);
   letter-spacing: 0;
-  margin: 0 0 10px 0;
-  padding-bottom: 6px;
+  margin: 0 0 14px 0;
+  padding-bottom: 8px;
   border-bottom: 2px solid var(--black);
 }
 
 .settings-group {
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .settings-group:last-child {
@@ -766,10 +755,10 @@ button:active {
 
 .settings-group input[type="text"] {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: var(--border);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: 14px;
   font-family: inherit;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
@@ -783,14 +772,14 @@ button:active {
 
 .settings-buttons-row {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .settings-buttons-row .btn-primary,
 .settings-buttons-row .btn-danger {
   flex: 1;
-  padding: 10px 12px;
-  font-size: 11px;
+  padding: 12px 16px;
+  font-size: 12px;
   margin: 0;
 }
 
@@ -798,15 +787,15 @@ button:active {
 .checkbox-label {
   display: flex !important;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
-  padding: 6px 0;
+  padding: 8px 0;
   margin: 0 !important;
 }
 
 .checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   margin: 0;
   cursor: pointer;
   appearance: none;
@@ -842,15 +831,15 @@ button:active {
 .checkbox-label span {
   font-weight: 600;
   color: var(--black);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .reminder-options {
-  margin-top: 8px;
-  margin-left: 28px;
+  margin-top: 10px;
+  margin-left: 34px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .reminder-options label {
@@ -862,15 +851,15 @@ button:active {
 }
 
 .reminder-options select {
-  padding: 6px 10px;
+  padding: 8px 12px;
   border: var(--border);
   border-radius: var(--radius);
-  font-size: 12px;
+  font-size: 13px;
   font-family: inherit;
   background: var(--surface);
   cursor: pointer;
   color: var(--black);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 2px 2px 0px var(--black);
 }
 
 .reminder-options select:focus {
@@ -898,16 +887,16 @@ button:active {
   border: var(--border);
   background: var(--surface);
   color: var(--black);
-  padding: 6px 10px;
+  padding: 8px 14px;
   border-radius: var(--radius);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.1s ease;
   box-shadow: var(--shadow-sm);
   font-weight: 600;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .theme-pill:hover {
@@ -923,8 +912,8 @@ button:active {
 }
 
 .theme-pill .swatch {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--black);
   border-radius: var(--radius);
   display: inline-block;
@@ -940,12 +929,11 @@ button:active {
 
 /* Subject Tags */
 .subject-tags-container {
-  max-height: 140px;
+  max-height: 180px;
   overflow-y: auto;
-  overflow-x: hidden;
   border: var(--border);
   border-radius: var(--radius);
-  padding: 8px;
+  padding: 10px;
   background: var(--surface);
   box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
 }
@@ -953,12 +941,12 @@ button:active {
 .subject-tag-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px;
+  gap: 12px;
+  padding: 10px;
   background: var(--bg);
   border: 2px solid var(--black);
   border-radius: var(--radius);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   position: relative;
 }
 
@@ -971,8 +959,8 @@ button:active {
 }
 
 .tag-color-indicator {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--radius);
   flex-shrink: 0;
   cursor: pointer;
@@ -1098,24 +1086,25 @@ button:active {
 
 /* No Data */
 .no-data {
-  padding: 30px 20px;
+  padding: 50px 30px;
   text-align: center;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   background: var(--surface);
   border: var(--border);
   border-radius: var(--radius);
-  margin: 12px;
+  margin: 20px;
   box-shadow: var(--shadow);
 }
 
 .no-events-message {
   text-align: center;
   color: var(--text-muted);
-  padding: 24px 16px;
-  font-size: 13px;
+  padding: 40px 24px;
+  font-size: 14px;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
 /* Hidden */
