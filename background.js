@@ -261,15 +261,19 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   chrome.notifications.clear(notificationId);
 });
 
-async function refreshCalendarData(overrideUrl) {
+async function refreshCalendarData(overrideUrl, isManualRefresh = false) {
   try {
     const data = await chrome.storage.local.get(['icalUrl', 'events', 'completedAssignments']);
     const icalUrl = overrideUrl || data.icalUrl;
-    if (!icalUrl) return;
+    if (!icalUrl) {
+      console.log('No iCal URL configured, skipping refresh');
+      return null;
+    }
 
     const previousEvents = data.events || [];
     const completedAssignments = data.completedAssignments || {};
 
+    console.log('Refreshing calendar from:', icalUrl);
     const newEvents = await ICalParser.fetchAndParse(icalUrl);
 
     const prevMap = new Map();
@@ -330,8 +334,20 @@ async function refreshCalendarData(overrideUrl) {
     console.log(`Calendar refreshed: +${added}, updated ${updated}, removed ${removed}`);
     return { added, updated, removed, timestamp: Date.now() };
   } catch (err) {
-    console.error('Failed to refresh calendar in background:', err);
-    throw err;
+    console.error('Failed to refresh calendar in background:', err.message);
+    // Store error info for debugging
+    await chrome.storage.local.set({
+      lastRefreshError: {
+        message: err.message,
+        timestamp: Date.now()
+      }
+    });
+    // Only throw for manual refreshes so user sees the error
+    // For automatic background refreshes, fail silently
+    if (isManualRefresh) {
+      throw err;
+    }
+    return null;
   }
 }
 
@@ -342,7 +358,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (overrideUrl) {
       chrome.storage.local.set({ icalUrl: overrideUrl });
     }
-    refreshCalendarData(overrideUrl)
+    // Manual refresh from popup - pass true to throw errors
+    refreshCalendarData(overrideUrl, true)
       .then(summary => sendResponse({ success: true, summary }))
       .catch(error => sendResponse({ success: false, error: error?.message || 'Unknown error' }));
     return true; // keep the message channel open for async response
@@ -587,17 +604,54 @@ class ICalParser {
       .trim();
   }
 
-  static async fetchAndParse(url) {
+  static async fetchAndParse(url, retries = 3) {
     let fetchUrl = url;
     if (url.startsWith('webcal://')) {
       fetchUrl = url.replace('webcal://', 'https://');
     } else if (url.startsWith('webcals://')) {
       fetchUrl = url.replace('webcals://', 'https://');
     }
-    const response = await fetch(fetchUrl);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const icalContent = await response.text();
-    return this.parseICalContent(icalContent);
+
+    let lastError;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+        const response = await fetch(fetchUrl, {
+          signal: controller.signal,
+          cache: 'no-cache',
+          headers: {
+            'Accept': 'text/calendar, text/plain, */*'
+          }
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const icalContent = await response.text();
+        return this.parseICalContent(icalContent);
+      } catch (err) {
+        lastError = err;
+        console.warn(`Fetch attempt ${attempt}/${retries} failed:`, err.message);
+
+        // Don't retry on abort (timeout) or if it's the last attempt
+        if (err.name === 'AbortError') {
+          lastError = new Error('Request timed out after 30 seconds');
+          break;
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+    }
+
+    throw lastError || new Error('Failed to fetch calendar data');
   }
 }
 

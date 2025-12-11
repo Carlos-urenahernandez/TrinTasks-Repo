@@ -440,12 +440,12 @@ button:active {
   flex: 1;
   display: flex;
   flex-direction: row;
-  gap: 12px;
+  gap: 10px;
   overflow: hidden;
   min-height: 0;
   position: relative;
   background: var(--bg);
-  padding: 12px;
+  padding: 10px;
 }
 
 /* Left Column - Main content area */
@@ -453,7 +453,7 @@ button:active {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   overflow: hidden;
 }
@@ -538,7 +538,7 @@ button:active {
   background: var(--cyan);
   border: var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 12px;
   box-shadow: var(--shadow);
 }
 
@@ -546,23 +546,23 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .week-header h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--black);
 }
 
 .nav-btn {
-  padding: 8px 14px;
+  padding: 6px 12px;
   background: var(--surface);
   color: var(--black);
   border: var(--border);
   border-radius: var(--radius);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
@@ -576,14 +576,14 @@ button:active {
 .week-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .week-day {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 6px;
+  padding: 8px 4px;
   background: var(--surface);
   border: var(--border);
   border-radius: var(--radius);
@@ -628,10 +628,10 @@ button:active {
 }
 
 .week-day-number {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--black);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .week-day-events {
@@ -663,18 +663,18 @@ button:active {
 }
 
 .events-list-header {
-  padding: 14px 16px;
+  padding: 8px 12px;
   background: var(--orange);
   border-bottom: var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .events-list-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--black);
 }
@@ -684,8 +684,8 @@ button:active {
   background: var(--surface);
   border: var(--border);
   border-radius: var(--radius);
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 4px 10px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--black);
   cursor: pointer;
@@ -757,7 +757,7 @@ button:active {
 .events-container {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  padding: 10px;
   background: var(--bg);
 }
 
@@ -766,8 +766,8 @@ button:active {
   background: var(--surface);
   border: var(--border);
   border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
   transition: all 0.1s ease;
   position: relative;
   box-shadow: var(--shadow-sm);
