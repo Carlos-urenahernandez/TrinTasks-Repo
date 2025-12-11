@@ -1120,6 +1120,7 @@ button:active {
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   font-size: 13px;
+  z-index: 9999;
   font-weight: 500;
   opacity: 0;
   transform: translateY(20px);
@@ -1197,22 +1198,35 @@ button:active {
   display: none !important;
 }
 
-/* Scrollbar */
+/* Scrollbar - Neo-Brutalism Style */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--bg);
+  border-left: 2px solid var(--black);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: var(--radius);
+  background: var(--surface);
+  border: 2px solid var(--black);
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-hover);
+  background: var(--accent);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--bg);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface) var(--bg);
 }
 
 /* Theme Variations */
