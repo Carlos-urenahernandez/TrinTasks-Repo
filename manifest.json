@@ -1,16 +1,14 @@
 {
   "name": "TrinTasks",
   "description": "Manage Trinity School assignments and calendar events",
-  "version": "1.1",
+  "version": "1.2",
   "manifest_version": 3,
   "permissions": [
     "storage",
     "notifications",
-    "alarms",
-    "geolocation"
+    "alarms"
   ],
   "host_permissions": [
-    "http://*/*",
     "https://*/*"
   ],
   "action": {
