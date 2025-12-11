@@ -17,64 +17,107 @@
 
     <!-- Main View -->
     <div id="mainView">
-      <div class="input-section">
-      <label for="icalLink">Enter iCal Link:</label>
-      <input
-        type="text"
-        id="icalLink"
-        placeholder="webcal://... or https://example.com/calendar.ics"
-        required
-      >
-      <button id="parseBtn">Parse iCal</button>
-    </div>
-
-    <div id="loadingSpinner" class="spinner hidden"></div>
-
-    <div id="errorMessage" class="error hidden"></div>
-
-    <div id="mainContent" class="main-content hidden">
-      <div class="left-column">
-        <!-- Week View -->
-        <div id="weekView" class="week-view">
-          <div class="week-header">
-            <button id="prevWeek" class="nav-btn">‹</button>
-            <h2 id="weekTitle">This Week</h2>
-            <button id="nextWeek" class="nav-btn">›</button>
+      <!-- Setup/Welcome Screen -->
+      <div id="setupView" class="setup-view">
+        <div class="setup-content">
+          <div class="setup-welcome">
+            <h2>Welcome to TrinTasks</h2>
+            <p>Track your assignments with ease</p>
           </div>
-          <div id="weekDays" class="week-days"></div>
-        </div>
 
-        <!-- Events for Selected Day -->
-        <div id="eventsList" class="events-list">
-          <div class="events-list-header">
-            <h2 id="selectedDayTitle">Today's Assignments</h2>
-            <div class="filter-select" id="filterSelect" title="Filter assignments">
-              <div class="filter-current" id="filterCurrent">All</div>
-              <div class="filter-options" id="filterOptions">
-                <button data-mode="all">All</button>
-                <button data-mode="active">Uncompleted</button>
-                <button data-mode="completed">Completed</button>
-              </div>
+          <div class="setup-section">
+            <div class="setup-section-header">
+              <span class="setup-step">1</span>
+              <label for="icalLink">Paste your calendar link</label>
+            </div>
+            <input
+              type="text"
+              id="icalLink"
+              placeholder="webcal://... or https://..."
+              required
+            >
+          </div>
+
+          <div class="setup-section">
+            <div class="setup-section-header">
+              <span class="setup-step">2</span>
+              <label>Choose a theme</label>
+            </div>
+            <div class="setup-themes" id="setupThemes">
+              <button type="button" class="setup-theme-btn selected" data-theme="fern">
+                <span class="setup-theme-swatch" style="background: #2f855a;"></span>
+                <span class="setup-theme-name">Fern</span>
+              </button>
+              <button type="button" class="setup-theme-btn" data-theme="ocean">
+                <span class="setup-theme-swatch" style="background: #0ea5e9;"></span>
+                <span class="setup-theme-name">Ocean</span>
+              </button>
+              <button type="button" class="setup-theme-btn" data-theme="sunset">
+                <span class="setup-theme-swatch" style="background: #f97316;"></span>
+                <span class="setup-theme-name">Sunset</span>
+              </button>
+              <button type="button" class="setup-theme-btn" data-theme="slate">
+                <span class="setup-theme-swatch" style="background: #64748b;"></span>
+                <span class="setup-theme-name">Slate</span>
+              </button>
+              <button type="button" class="setup-theme-btn" data-theme="orchid">
+                <span class="setup-theme-swatch" style="background: #a855f7;"></span>
+                <span class="setup-theme-name">Orchid</span>
+              </button>
+              <button type="button" class="setup-theme-btn" data-theme="midnight">
+                <span class="setup-theme-swatch" style="background: #1c2541;"></span>
+                <span class="setup-theme-name">Midnight</span>
+              </button>
             </div>
           </div>
-          <div id="eventsContainer" class="events-container"></div>
+
+          <button id="parseBtn" class="setup-submit-btn">Get Started</button>
         </div>
       </div>
 
-      <!-- Right-side Major Assignments Bar -->
-      <aside id="majorAssignmentsBar" class="major-assignments-bar hidden" aria-live="polite">
-        <div class="major-bar-header">
-          <h3>Major assignments</h3>
-          <div class="major-bar-note">Tests, quizzes, essays, projects</div>
-        </div>
-        <div id="majorList" class="major-list">
-          <!-- Items populated dynamically -->
-        </div>
-      </aside>
-    </div>
+      <div id="loadingSpinner" class="spinner hidden"></div>
 
-      <div id="noData" class="no-data">
-        Enter an iCal link and click "Parse iCal" to see events
+      <div id="errorMessage" class="error hidden"></div>
+
+      <div id="mainContent" class="main-content hidden">
+        <div class="left-column">
+          <!-- Week View -->
+          <div id="weekView" class="week-view">
+            <div class="week-header">
+              <button id="prevWeek" class="nav-btn">‹</button>
+              <h2 id="weekTitle">This Week</h2>
+              <button id="nextWeek" class="nav-btn">›</button>
+            </div>
+            <div id="weekDays" class="week-days"></div>
+          </div>
+
+          <!-- Events for Selected Day -->
+          <div id="eventsList" class="events-list">
+            <div class="events-list-header">
+              <h2 id="selectedDayTitle">Today's Assignments</h2>
+              <div class="filter-select" id="filterSelect" title="Filter assignments">
+                <div class="filter-current" id="filterCurrent">All</div>
+                <div class="filter-options" id="filterOptions">
+                  <button data-mode="all">All</button>
+                  <button data-mode="active">Uncompleted</button>
+                  <button data-mode="completed">Completed</button>
+                </div>
+              </div>
+            </div>
+            <div id="eventsContainer" class="events-container"></div>
+          </div>
+        </div>
+
+        <!-- Right-side Major Assignments Bar -->
+        <aside id="majorAssignmentsBar" class="major-assignments-bar hidden" aria-live="polite">
+          <div class="major-bar-header">
+            <h3>Major assignments</h3>
+            <div class="major-bar-note">Tests, quizzes, essays, projects</div>
+          </div>
+          <div id="majorList" class="major-list">
+            <!-- Items populated dynamically -->
+          </div>
+        </aside>
       </div>
     </div>
 

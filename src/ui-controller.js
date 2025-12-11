@@ -28,13 +28,11 @@ export class UIController {
     // DOM element references
     this.parseBtn = document.getElementById('parseBtn');
     this.icalLinkInput = document.getElementById('icalLink');
-    this.inputSection = document.querySelector('.input-section');
     this.loadingSpinner = document.getElementById('loadingSpinner');
     this.errorMessage = document.getElementById('errorMessage');
     this.mainContent = document.getElementById('mainContent');
     this.eventsList = document.getElementById('eventsList');
     this.eventsContainer = document.getElementById('eventsContainer');
-    this.noData = document.getElementById('noData');
     this.filterSelect = document.getElementById('filterSelect');
     this.filterCurrent = document.getElementById('filterCurrent');
     this.filterOptions = document.getElementById('filterOptions');
@@ -67,6 +65,10 @@ export class UIController {
     // Subject tags elements
     this.subjectTagsDiv = document.getElementById('subjectTags');
 
+    // Setup view elements
+    this.setupView = document.getElementById('setupView');
+    this.setupThemes = document.getElementById('setupThemes');
+
     // Major assignments sidebar elements
     this.majorAssignmentsBar = document.getElementById('majorAssignmentsBar');
     this.majorListDiv = document.getElementById('majorList');
@@ -79,6 +81,7 @@ export class UIController {
     this.isSettingsView = false;
     this.filterMode = 'all';
     this.autoRefreshInterval = null;
+    this.isAnimating = false; // Prevent re-render during animations
 
     // Initialize modules
     this.themeManager = new ThemeManager();
@@ -170,7 +173,7 @@ export class UIController {
       });
     }
 
-    // Theme selection
+    // Theme selection (settings view)
     if (this.themeOptions) {
       this.themeOptions.querySelectorAll('.theme-pill').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -179,6 +182,22 @@ export class UIController {
             this.themeManager.applyTheme(theme);
             this.updateThemePillSelection();
             this.handleSaveSettings();
+          }
+        });
+      });
+    }
+
+    // Setup theme selection (initial setup view)
+    if (this.setupThemes) {
+      this.setupThemes.querySelectorAll('.setup-theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const theme = btn.getAttribute('data-theme');
+          if (theme) {
+            // Update selection visually
+            this.setupThemes.querySelectorAll('.setup-theme-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            // Apply theme immediately for preview
+            this.themeManager.applyTheme(theme);
           }
         });
       });
@@ -214,6 +233,8 @@ export class UIController {
       const events = await ICalParser.fetchAndParse(url);
       this.displayEvents(events);
       await saveToStorage(url, events);
+      // Save the selected theme from setup
+      await this.handleSaveSettings();
     } catch (error) {
       console.error('Parse error:', error);
       this.showError(error.message);
@@ -236,9 +257,10 @@ export class UIController {
     this.sidebar.updateData({ events, pinnedAssignments: this.pinnedAssignments });
     this.updateEventRendererOptions();
 
-    // Hide input section and show main content
-    this.inputSection.classList.add('hidden');
-    this.noData.classList.add('hidden');
+    // Hide setup view and show main content
+    if (this.setupView) {
+      this.setupView.classList.add('hidden');
+    }
     this.mainContent.classList.remove('hidden');
 
     // Show week view and events for selected day
@@ -263,17 +285,29 @@ export class UIController {
   }
 
   async handleToggleComplete(event, eventElement) {
+    // Check if we're marking as complete (not already completed)
+    const willComplete = !event.isCompleted;
+
+    // Set flag BEFORE async call to prevent storage listener from interrupting
+    if (willComplete && eventElement) {
+      this.isAnimating = true;
+    }
+
     const result = await toggleAssignmentComplete(event);
     event.isCompleted = result.isCompleted;
     event.completedDate = result.completedDate;
 
     if (result.isCompleted && eventElement) {
+      // Run the animation
       this.eventRenderer.animateCompletion(eventElement);
       setTimeout(() => {
+        this.isAnimating = false;
         this.weekViewController.renderWeekView();
         this.showEventsForSelectedDay();
       }, 1200);
     } else {
+      // Uncompleting - reset animation state and re-render immediately
+      this.isAnimating = false;
       if (eventElement) {
         eventElement.classList.remove('completing');
         const cb = eventElement.querySelector('.event-checkbox');
@@ -342,6 +376,9 @@ export class UIController {
   listenForStorageChanges() {
     listenForStorageChanges(async (changes, areaName) => {
       if (areaName !== 'local') return;
+
+      // Don't re-render during completion animation
+      if (this.isAnimating) return;
 
       const eventsChanged = changes.events || changes.completedAssignments || changes.icalUrl;
       if (eventsChanged) {
@@ -508,8 +545,10 @@ export class UIController {
       this.icalLinkInput.value = '';
       this.settingsIcalLink.value = '';
       this.mainContent.classList.add('hidden');
-      this.inputSection.classList.remove('hidden');
-      this.noData.classList.remove('hidden');
+      // Show setup view again
+      if (this.setupView) {
+        this.setupView.classList.remove('hidden');
+      }
       if (this.autoRefreshCheckbox) this.autoRefreshCheckbox.checked = false;
       this.enableRemindersCheckbox.checked = true;
       this.reminderHoursSelect.value = '24';
@@ -520,6 +559,12 @@ export class UIController {
       this.loadSubjectTags();
       this.themeManager.applyTheme('fern');
       this.updateThemePillSelection();
+      // Reset setup theme selection
+      if (this.setupThemes) {
+        this.setupThemes.querySelectorAll('.setup-theme-btn').forEach(btn => {
+          btn.classList.toggle('selected', btn.getAttribute('data-theme') === 'fern');
+        });
+      }
       this.closeSettings();
     }
   }

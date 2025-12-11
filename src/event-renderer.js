@@ -239,12 +239,35 @@ export class EventRenderer {
   }
 
   /**
+   * Hide the toast immediately
+   */
+  hideToast() {
+    const toast = document.getElementById('refreshToast');
+    if (!toast) return;
+    clearTimeout(this.toastTimeout);
+    toast.classList.remove('visible');
+    setTimeout(() => toast.classList.add('hidden'), 300);
+  }
+
+  /**
+   * Setup toast click handler (call once)
+   */
+  setupToastClickHandler() {
+    const toast = document.getElementById('refreshToast');
+    if (!toast || toast.dataset.clickHandlerSet) return;
+    toast.dataset.clickHandlerSet = 'true';
+    toast.addEventListener('click', () => this.hideToast());
+  }
+
+  /**
    * Show a message toast
    * @param {string} message - Message to show
    */
   showMessageToast(message) {
     const toast = document.getElementById('refreshToast');
     if (!toast || !message) return;
+
+    this.setupToastClickHandler();
     toast.textContent = message;
     toast.classList.remove('hidden');
     toast.classList.add('visible');
@@ -264,8 +287,9 @@ export class EventRenderer {
     const toast = document.getElementById('refreshToast');
     if (!toast || !summary) return;
 
+    this.setupToastClickHandler();
     const { added = 0, updated = 0, removed = 0, timestamp } = summary;
-    toast.textContent = `Calendar refreshed: +${added} added, ${updated} updated, ${removed} removed${timestamp ? ` · ${new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`;
+    toast.textContent = `+${added} added, ${updated} updated, ${removed} removed`;
     toast.classList.remove('hidden');
     toast.classList.add('visible');
 
