@@ -503,7 +503,7 @@ button:active {
   border: var(--border);
   border-radius: var(--radius);
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--black);
   cursor: pointer;
@@ -1113,15 +1113,15 @@ button:active {
   position: absolute;
   right: 16px;
   bottom: 16px;
-  background: var(--black);
+  background: var(--accent);
   color: white;
   padding: 14px 18px;
-  border: 2px solid var(--accent);
+  border: var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
   font-size: 13px;
   z-index: 9999;
-  font-weight: 500;
+  font-weight: 600;
   opacity: 0;
   transform: translateY(20px);
   transition: all 0.2s ease;
@@ -1131,6 +1131,13 @@ button:active {
 .refresh-toast.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Theme-specific toast colors */
+body.theme-midnight .refresh-toast {
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--black);
 }
 
 /* Spinner */
