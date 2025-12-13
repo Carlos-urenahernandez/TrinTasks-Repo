@@ -68,6 +68,9 @@ export class UIController {
     // Setup view elements
     this.setupView = document.getElementById('setupView');
     this.setupThemes = document.getElementById('setupThemes');
+    this.setupUIStyles = document.getElementById('setupUIStyles');
+    this.setupStyleLabel = document.getElementById('setupStyleLabel');
+    this.settingsUIStyles = document.getElementById('settingsUIStyles');
 
     // Major assignments sidebar elements
     this.majorAssignmentsBar = document.getElementById('majorAssignmentsBar');
@@ -187,17 +190,51 @@ export class UIController {
       });
     }
 
-    // Setup theme selection (initial setup view)
+    // Setup UI style selection (initial setup view)
+    if (this.setupUIStyles) {
+      this.setupUIStyles.querySelectorAll('.ui-style-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const style = btn.getAttribute('data-style');
+          if (style) {
+            this.themeManager.applyUIStyle(style);
+            // Hide style options and show color options
+            this.setupUIStyles.classList.add('hidden');
+            if (this.setupThemes) {
+              this.setupThemes.classList.remove('hidden');
+            }
+            // Update label text
+            if (this.setupStyleLabel) {
+              this.setupStyleLabel.textContent = 'Choose a color';
+            }
+          }
+        });
+      });
+    }
+
+    // Setup color selection (theme buttons)
     if (this.setupThemes) {
       this.setupThemes.querySelectorAll('.setup-theme-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const theme = btn.getAttribute('data-theme');
           if (theme) {
-            // Update selection visually
             this.setupThemes.querySelectorAll('.setup-theme-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            // Apply theme immediately for preview
             this.themeManager.applyTheme(theme);
+          }
+        });
+      });
+    }
+
+    // Settings UI style selection
+    if (this.settingsUIStyles) {
+      this.settingsUIStyles.querySelectorAll('.ui-style-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const style = btn.getAttribute('data-style');
+          if (style) {
+            this.settingsUIStyles.querySelectorAll('.ui-style-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            this.themeManager.applyUIStyle(style);
+            this.handleSaveSettings();
           }
         });
       });
@@ -393,6 +430,11 @@ export class UIController {
         this.themeManager.applyTheme(changes.theme.newValue);
         this.updateThemePillSelection();
       }
+
+      if (changes.uiStyle && changes.uiStyle.newValue) {
+        this.themeManager.applyUIStyle(changes.uiStyle.newValue);
+        this.updateUIStyleSelection();
+      }
     });
   }
 
@@ -501,7 +543,9 @@ export class UIController {
     this.reminderHoursSelect.value = String(settings.reminderHours);
 
     this.themeManager.applyTheme(settings.theme);
+    this.themeManager.applyUIStyle(settings.uiStyle);
     this.updateThemePillSelection();
+    this.updateUIStyleSelection();
 
     if (this.showMajorAssignmentsCheckbox) {
       this.showMajorAssignmentsCheckbox.checked = settings.showMajorAssignmentsBar;
@@ -517,6 +561,7 @@ export class UIController {
       enableReminders: this.enableRemindersCheckbox.checked,
       reminderHours: parseInt(this.reminderHoursSelect.value, 10) || 24,
       theme: this.themeManager.currentTheme,
+      uiStyle: this.themeManager.currentUIStyle,
       showMajorAssignmentsBar: this.showMajorAssignmentsCheckbox ? this.showMajorAssignmentsCheckbox.checked : false
     };
 
@@ -557,13 +602,25 @@ export class UIController {
       }
       this.sidebar.toggleVisibility(false);
       this.loadSubjectTags();
-      this.themeManager.applyTheme('fern');
+      this.themeManager.applyTheme('slate');
+      this.themeManager.applyUIStyle('neobrutalism');
       this.updateThemePillSelection();
-      // Reset setup theme selection
-      if (this.setupThemes) {
-        this.setupThemes.querySelectorAll('.setup-theme-btn').forEach(btn => {
-          btn.classList.toggle('selected', btn.getAttribute('data-theme') === 'fern');
+      this.updateUIStyleSelection();
+      // Reset setup view to initial state
+      if (this.setupUIStyles) {
+        this.setupUIStyles.classList.remove('hidden');
+        this.setupUIStyles.querySelectorAll('.ui-style-btn').forEach(btn => {
+          btn.classList.remove('selected');
         });
+      }
+      if (this.setupThemes) {
+        this.setupThemes.classList.add('hidden');
+        this.setupThemes.querySelectorAll('.setup-theme-btn').forEach(btn => {
+          btn.classList.toggle('selected', btn.getAttribute('data-theme') === 'slate');
+        });
+      }
+      if (this.setupStyleLabel) {
+        this.setupStyleLabel.textContent = 'Choose your style';
       }
       this.closeSettings();
     }
@@ -586,6 +643,26 @@ export class UIController {
       this.themeOptions.querySelectorAll('.theme-pill').forEach(btn => {
         const val = btn.getAttribute('data-theme-option');
         btn.classList.toggle('selected', val === this.themeManager.currentTheme);
+      });
+    }
+  }
+
+  updateUIStyleSelection() {
+    const currentStyle = this.themeManager.currentUIStyle;
+
+    // Update setup view UI style buttons
+    if (this.setupUIStyles) {
+      this.setupUIStyles.querySelectorAll('.ui-style-btn').forEach(btn => {
+        const val = btn.getAttribute('data-style');
+        btn.classList.toggle('selected', val === currentStyle);
+      });
+    }
+
+    // Update settings view UI style buttons
+    if (this.settingsUIStyles) {
+      this.settingsUIStyles.querySelectorAll('.ui-style-btn').forEach(btn => {
+        const val = btn.getAttribute('data-style');
+        btn.classList.toggle('selected', val === currentStyle);
       });
     }
   }

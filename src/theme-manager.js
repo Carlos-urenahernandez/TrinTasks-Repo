@@ -4,10 +4,38 @@ import { THEME_NAMES, SERENITY_PALETTES } from './constants.js';
 
 export class ThemeManager {
   constructor() {
-    this.currentTheme = 'fern';
+    this.currentTheme = 'slate';
+    this.currentUIStyle = 'neobrutalism';
     this.serenityWeatherCache = null;
     this.serenityRefreshTimer = null;
     this.serenityApplying = false;
+  }
+
+  /**
+   * Apply a UI style to the document
+   * @param {string} style - UI style name ('neobrutalism' or 'glass')
+   * @returns {string} The applied UI style
+   */
+  applyUIStyle(style) {
+    const validStyles = ['neobrutalism', 'glass'];
+    const selectedStyle = validStyles.includes(style) ? style : 'neobrutalism';
+
+    // Remove existing UI style classes
+    document.body.classList.remove('ui-neobrutalism', 'ui-glass');
+
+    // Apply the selected style
+    document.body.classList.add(`ui-${selectedStyle}`);
+    this.currentUIStyle = selectedStyle;
+
+    return this.currentUIStyle;
+  }
+
+  /**
+   * Get current UI style
+   * @returns {string} Current UI style
+   */
+  getUIStyle() {
+    return this.currentUIStyle;
   }
 
   /**
@@ -15,7 +43,7 @@ export class ThemeManager {
    * @param {string} theme - Theme name to apply
    */
   applyTheme(theme) {
-    const selectedTheme = theme || 'fern';
+    const selectedTheme = theme || 'slate';
     const themeClass = `theme-${selectedTheme}`;
 
     // Remove all theme classes
@@ -31,8 +59,8 @@ export class ThemeManager {
     setTimeout(() => document.body.classList.remove('theme-animating'), 400);
 
     if (!THEME_NAMES.includes(themeClass)) {
-      document.body.classList.add('theme-fern');
-      this.currentTheme = 'fern';
+      document.body.classList.add('theme-slate');
+      this.currentTheme = 'slate';
     } else if (themeClass === 'theme-serenity') {
       document.body.classList.add('theme-serenity');
       this.currentTheme = 'serenity';

@@ -41,33 +41,41 @@
           <div class="setup-section">
             <div class="setup-section-header">
               <span class="setup-step">2</span>
-              <label>Choose a theme</label>
+              <label id="setupStyleLabel">Choose your style</label>
             </div>
-            <div class="setup-themes" id="setupThemes">
-              <button type="button" class="setup-theme-btn selected" data-theme="fern">
-                <span class="setup-theme-swatch" style="background: #2f855a;"></span>
-                <span class="setup-theme-name">Fern</span>
-              </button>
-              <button type="button" class="setup-theme-btn" data-theme="ocean">
-                <span class="setup-theme-swatch" style="background: #0ea5e9;"></span>
-                <span class="setup-theme-name">Ocean</span>
-              </button>
-              <button type="button" class="setup-theme-btn" data-theme="sunset">
-                <span class="setup-theme-swatch" style="background: #f97316;"></span>
-                <span class="setup-theme-name">Sunset</span>
-              </button>
-              <button type="button" class="setup-theme-btn" data-theme="slate">
-                <span class="setup-theme-swatch" style="background: #64748b;"></span>
-                <span class="setup-theme-name">Slate</span>
-              </button>
-              <button type="button" class="setup-theme-btn" data-theme="orchid">
-                <span class="setup-theme-swatch" style="background: #a855f7;"></span>
-                <span class="setup-theme-name">Orchid</span>
-              </button>
-              <button type="button" class="setup-theme-btn" data-theme="midnight">
-                <span class="setup-theme-swatch" style="background: #1c2541;"></span>
-                <span class="setup-theme-name">Midnight</span>
-              </button>
+            <div class="setup-style-picker" id="setupStylePicker">
+              <!-- Style selection (shown first) -->
+              <div class="ui-style-options" id="setupUIStyles">
+                <button type="button" class="ui-style-btn" data-style="neobrutalism">Neo-Brutalism</button>
+                <button type="button" class="ui-style-btn" data-style="glass">Glass</button>
+              </div>
+              <!-- Color selection (replaces style options) -->
+              <div class="setup-themes hidden" id="setupThemes">
+                <button type="button" class="setup-theme-btn" data-theme="fern">
+                  <span class="setup-theme-swatch" style="background: #2f855a;"></span>
+                  <span class="setup-theme-name">Fern</span>
+                </button>
+                <button type="button" class="setup-theme-btn" data-theme="ocean">
+                  <span class="setup-theme-swatch" style="background: #0ea5e9;"></span>
+                  <span class="setup-theme-name">Ocean</span>
+                </button>
+                <button type="button" class="setup-theme-btn" data-theme="sunset">
+                  <span class="setup-theme-swatch" style="background: #f97316;"></span>
+                  <span class="setup-theme-name">Sunset</span>
+                </button>
+                <button type="button" class="setup-theme-btn selected" data-theme="slate">
+                  <span class="setup-theme-swatch" style="background: #64748b;"></span>
+                  <span class="setup-theme-name">Slate</span>
+                </button>
+                <button type="button" class="setup-theme-btn" data-theme="orchid">
+                  <span class="setup-theme-swatch" style="background: #a855f7;"></span>
+                  <span class="setup-theme-name">Orchid</span>
+                </button>
+                <button type="button" class="setup-theme-btn" data-theme="midnight">
+                  <span class="setup-theme-swatch" style="background: #1c2541;"></span>
+                  <span class="setup-theme-name">Midnight</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -170,9 +178,21 @@
           </div>
         </div>
 
+        <!-- UI Style Section -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">UI Style</h3>
+          <p class="settings-hint">Choose the visual style of the interface</p>
+          <div class="settings-group">
+            <div class="ui-style-options" id="settingsUIStyles">
+              <button type="button" class="ui-style-btn selected" data-style="neobrutalism">Neo-Brutalism</button>
+              <button type="button" class="ui-style-btn" data-style="glass">Glass</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Theme Section -->
         <div class="settings-section">
-          <h3 class="settings-section-title">Theme</h3>
+          <h3 class="settings-section-title">Color Theme</h3>
           <p class="settings-hint">Pick a color vibe for the header, buttons, and cards</p>
           <div class="settings-group theme-options" id="themeOptions">
             <button type="button" class="theme-pill" data-theme-option="fern">

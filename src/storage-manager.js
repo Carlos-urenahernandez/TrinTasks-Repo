@@ -274,6 +274,7 @@ export async function loadSettings() {
     'reminderHours',
     'reminderSettings',
     'theme',
+    'uiStyle',
     'showMajorAssignmentsBar',
     'subjectTags'
   ]);
@@ -282,7 +283,8 @@ export async function loadSettings() {
     autoRefresh: data.autoRefresh || false,
     enableReminders: data.enableReminders !== false,
     reminderHours: (data.reminderSettings && data.reminderSettings.hours) || data.reminderHours || 24,
-    theme: data.theme || 'fern',
+    theme: data.theme || 'slate',
+    uiStyle: data.uiStyle || 'neobrutalism',
     showMajorAssignmentsBar: data.showMajorAssignmentsBar === true,
     subjectTags: data.subjectTags || {}
   };
@@ -298,6 +300,7 @@ export async function saveSettings(settings) {
     enableReminders: settings.enableReminders,
     reminderHours: settings.reminderHours,
     theme: settings.theme,
+    uiStyle: settings.uiStyle,
     reminderSettings: {
       enabled: settings.enableReminders,
       hours: settings.reminderHours
