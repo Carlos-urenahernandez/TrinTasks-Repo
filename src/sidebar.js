@@ -11,6 +11,8 @@ export class Sidebar {
     this.showMajorAssignmentsCheckbox = options.showMajorAssignmentsCheckbox;
     this.onUnpin = options.onUnpin || (() => {});
     this.onNavigateToDate = options.onNavigateToDate || (() => {});
+    this.onToggleComplete = options.onToggleComplete || (() => {});
+    this.onToggleInProgress = options.onToggleInProgress || (() => {});
     this.events = [];
     this.pinnedAssignments = {};
   }
@@ -82,6 +84,41 @@ export class Sidebar {
 
         const item = document.createElement('div');
         item.className = 'major-item pinned-item';
+        if (ev.isCompleted) {
+          item.classList.add('completed');
+        }
+        if (ev.isInProgress) {
+          item.classList.add('in-progress');
+        }
+
+        // Status buttons container
+        const statusBtns = document.createElement('div');
+        statusBtns.className = 'sidebar-status-btns';
+
+        // Checkbox for completion
+        const checkbox = document.createElement('div');
+        checkbox.className = 'sidebar-checkbox' + (ev.isCompleted ? ' checked' : '');
+        checkbox.innerHTML = ev.isCompleted ? '✓' : '';
+        checkbox.title = ev.isCompleted ? 'Mark incomplete' : 'Mark complete';
+        checkbox.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.onToggleComplete(ev, item);
+        });
+        statusBtns.appendChild(checkbox);
+
+        // In-progress button
+        const inProgressBtn = document.createElement('div');
+        inProgressBtn.className = 'sidebar-in-progress' + (ev.isInProgress ? ' active' : '');
+        inProgressBtn.innerHTML = '◐';
+        inProgressBtn.title = ev.isInProgress ? 'Remove in-progress' : 'Mark in-progress';
+        inProgressBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.onToggleInProgress(ev, item);
+        });
+        statusBtns.appendChild(inProgressBtn);
+
+        const content = document.createElement('div');
+        content.className = 'major-item-content';
 
         const title = document.createElement('div');
         title.className = 'major-title';
@@ -90,6 +127,9 @@ export class Sidebar {
         const meta = document.createElement('div');
         meta.className = 'major-meta';
         meta.textContent = ev.dueTime || ev.startTime || '';
+
+        content.appendChild(title);
+        content.appendChild(meta);
 
         // Unpin button
         const unpinBtn = document.createElement('button');
@@ -102,8 +142,8 @@ export class Sidebar {
           this.onUnpin(eventId);
         });
 
-        item.appendChild(title);
-        item.appendChild(meta);
+        item.appendChild(statusBtns);
+        item.appendChild(content);
         item.appendChild(unpinBtn);
 
         // Click to navigate to date
@@ -144,15 +184,57 @@ export class Sidebar {
       majors.forEach(ev => {
         const item = document.createElement('div');
         item.className = 'major-item';
+        if (ev.isCompleted) {
+          item.classList.add('completed');
+        }
+        if (ev.isInProgress) {
+          item.classList.add('in-progress');
+        }
+
+        // Status buttons container
+        const statusBtns = document.createElement('div');
+        statusBtns.className = 'sidebar-status-btns';
+
+        // Checkbox for completion
+        const checkbox = document.createElement('div');
+        checkbox.className = 'sidebar-checkbox' + (ev.isCompleted ? ' checked' : '');
+        checkbox.innerHTML = ev.isCompleted ? '✓' : '';
+        checkbox.title = ev.isCompleted ? 'Mark incomplete' : 'Mark complete';
+        checkbox.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.onToggleComplete(ev, item);
+        });
+        statusBtns.appendChild(checkbox);
+
+        // In-progress button
+        const inProgressBtn = document.createElement('div');
+        inProgressBtn.className = 'sidebar-in-progress' + (ev.isInProgress ? ' active' : '');
+        inProgressBtn.innerHTML = '◐';
+        inProgressBtn.title = ev.isInProgress ? 'Remove in-progress' : 'Mark in-progress';
+        inProgressBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.onToggleInProgress(ev, item);
+        });
+        statusBtns.appendChild(inProgressBtn);
+
+        const content = document.createElement('div');
+        content.className = 'major-item-content';
+
         const title = document.createElement('div');
         title.className = 'major-title';
         title.textContent = getCleanTitle(ev.title || ev.summary || 'Untitled');
+
         const meta = document.createElement('div');
         meta.className = 'major-meta';
         const when = ev.dueTime || ev.startTime || '';
         meta.textContent = when;
-        item.appendChild(title);
-        item.appendChild(meta);
+
+        content.appendChild(title);
+        content.appendChild(meta);
+
+        item.appendChild(statusBtns);
+        item.appendChild(content);
+
         // Clicking focuses the date/day in the main view
         item.addEventListener('click', () => {
           if (ev.dueRaw || ev.startRaw) {

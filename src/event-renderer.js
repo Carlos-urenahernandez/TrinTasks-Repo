@@ -7,6 +7,7 @@ import { ASSIGNMENT_KEYWORDS } from './constants.js';
 export class EventRenderer {
   constructor(options = {}) {
     this.onToggleComplete = options.onToggleComplete || (() => {});
+    this.onToggleInProgress = options.onToggleInProgress || (() => {});
     this.onTogglePin = options.onTogglePin || (() => {});
     this.getSubjectFromTitle = options.getSubjectFromTitle || (() => null);
     this.pinnedAssignments = options.pinnedAssignments || {};
@@ -34,6 +35,9 @@ export class EventRenderer {
     if (event.isCompleted) {
       eventDiv.classList.add('completed');
     }
+    if (event.isInProgress) {
+      eventDiv.classList.add('in-progress');
+    }
 
     // Apply subject color if available
     const subjectTag = this.getSubjectFromTitle(event.title);
@@ -59,12 +63,32 @@ export class EventRenderer {
     );
 
     if (inferredIsAssignment) {
+      // Status buttons container
+      const statusBtns = document.createElement('div');
+      statusBtns.className = 'event-status-btns';
+
+      // Checkbox for completion
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'event-checkbox';
       checkbox.checked = event.isCompleted || false;
+      checkbox.title = event.isCompleted ? 'Mark incomplete' : 'Mark complete';
       checkbox.addEventListener('change', () => this.onToggleComplete(event, eventDiv));
-      headerDiv.appendChild(checkbox);
+      statusBtns.appendChild(checkbox);
+
+      // In-progress button
+      const inProgressBtn = document.createElement('button');
+      inProgressBtn.type = 'button';
+      inProgressBtn.className = 'in-progress-btn' + (event.isInProgress ? ' active' : '');
+      inProgressBtn.title = event.isInProgress ? 'Remove in-progress' : 'Mark in-progress';
+      inProgressBtn.innerHTML = '◐';
+      inProgressBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.onToggleInProgress(event, eventDiv);
+      });
+      statusBtns.appendChild(inProgressBtn);
+
+      headerDiv.appendChild(statusBtns);
     }
 
     // Add pin button (only visible when sidebar is enabled)
@@ -121,6 +145,19 @@ export class EventRenderer {
       html += `<div class="event-detail">
         <span class="event-detail-label">Class:</span>
         <span class="event-detail-value">${escapeHtml(courseFullName)}</span>
+      </div>`;
+    }
+
+    // Show in-progress status if set
+    if (event.isInProgress && event.inProgressDate) {
+      const inProgressDate = new Date(event.inProgressDate);
+      const formattedDate = inProgressDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+      html += `<div class="event-detail">
+        <span class="event-detail-label">Status:</span>
+        <span class="event-detail-value" style="color: #f59e0b;">◐ In progress since ${formattedDate}</span>
       </div>`;
     }
 

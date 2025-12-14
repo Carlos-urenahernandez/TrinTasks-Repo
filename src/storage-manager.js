@@ -44,14 +44,16 @@ export async function loadSavedData() {
       'icalUrl',
       'events',
       'completedAssignments',
+      'inProgressAssignments',
       'lastRefreshSummary',
       'pinnedAssignments'
     ]);
 
     if (data.icalUrl && data.events) {
-      // Merge completion status with cached events
+      // Merge completion and in-progress status with cached events
       const completedAssignments = data.completedAssignments || {};
-      const cachedEvents = mergeCompletionStatus(data.events, completedAssignments);
+      const inProgressAssignments = data.inProgressAssignments || {};
+      const cachedEvents = mergeCompletionStatus(data.events, completedAssignments, inProgressAssignments);
 
       return {
         url: data.icalUrl,
@@ -67,22 +69,32 @@ export async function loadSavedData() {
 }
 
 /**
- * Merge completion status into events array
+ * Merge completion and in-progress status into events array
  * @param {Array} events - Array of events
  * @param {Object} completedAssignments - Map of completed assignment IDs
- * @returns {Array} Events with completion status merged
+ * @param {Object} inProgressAssignments - Map of in-progress assignment IDs
+ * @returns {Array} Events with status merged
  */
-export function mergeCompletionStatus(events, completedAssignments) {
+export function mergeCompletionStatus(events, completedAssignments, inProgressAssignments) {
   const completed = completedAssignments || {};
+  const inProgress = inProgressAssignments || {};
   return (events || []).map(event => {
     const merged = { ...event };
     const eventId = merged.uid || `${merged.title}_${merged.dueRaw || merged.startRaw}`;
     if (completed[eventId]) {
       merged.isCompleted = true;
       merged.completedDate = completed[eventId].completedDate;
+      merged.isInProgress = false;
+    } else if (inProgress[eventId]) {
+      merged.isInProgress = true;
+      merged.inProgressDate = inProgress[eventId].inProgressDate;
+      merged.isCompleted = false;
+      merged.completedDate = null;
     } else {
       merged.isCompleted = false;
       merged.completedDate = null;
+      merged.isInProgress = false;
+      merged.inProgressDate = null;
     }
     return merged;
   });
@@ -126,14 +138,15 @@ export async function togglePinAssignment(event, currentPinned) {
 /**
  * Toggle completion status for an assignment
  * @param {Object} event - The event to toggle
- * @returns {Promise<{isCompleted: boolean, completedDate: string|null}>}
+ * @returns {Promise<{isCompleted: boolean, completedDate: string|null, isInProgress: boolean}>}
  */
 export async function toggleAssignmentComplete(event) {
   const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
 
-  // Load existing completed assignments
-  const data = await chrome.storage.local.get(['completedAssignments']);
+  // Load existing assignments
+  const data = await chrome.storage.local.get(['completedAssignments', 'inProgressAssignments']);
   const completedAssignments = data.completedAssignments || {};
+  const inProgressAssignments = data.inProgressAssignments || {};
 
   let isCompleted;
   let completedDate = null;
@@ -143,7 +156,8 @@ export async function toggleAssignmentComplete(event) {
     delete completedAssignments[eventId];
     isCompleted = false;
   } else {
-    // Mark as complete
+    // Mark as complete (also remove from in-progress if it was)
+    delete inProgressAssignments[eventId];
     completedDate = new Date().toISOString();
     completedAssignments[eventId] = {
       completedDate,
@@ -152,8 +166,43 @@ export async function toggleAssignmentComplete(event) {
     isCompleted = true;
   }
 
-  await chrome.storage.local.set({ completedAssignments });
-  return { isCompleted, completedDate };
+  await chrome.storage.local.set({ completedAssignments, inProgressAssignments });
+  return { isCompleted, completedDate, isInProgress: false };
+}
+
+/**
+ * Toggle in-progress status for an assignment
+ * @param {Object} event - The event to toggle
+ * @returns {Promise<{isInProgress: boolean, inProgressDate: string|null}>}
+ */
+export async function toggleAssignmentInProgress(event) {
+  const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+
+  // Load existing in-progress assignments
+  const data = await chrome.storage.local.get(['inProgressAssignments', 'completedAssignments']);
+  const inProgressAssignments = data.inProgressAssignments || {};
+  const completedAssignments = data.completedAssignments || {};
+
+  let isInProgress;
+  let inProgressDate = null;
+
+  if (event.isInProgress) {
+    // Remove from in-progress
+    delete inProgressAssignments[eventId];
+    isInProgress = false;
+  } else {
+    // Mark as in-progress (also remove from completed if it was)
+    delete completedAssignments[eventId];
+    inProgressDate = new Date().toISOString();
+    inProgressAssignments[eventId] = {
+      inProgressDate,
+      title: event.title
+    };
+    isInProgress = true;
+  }
+
+  await chrome.storage.local.set({ inProgressAssignments, completedAssignments });
+  return { isInProgress, inProgressDate, isCompleted: false };
 }
 
 /**

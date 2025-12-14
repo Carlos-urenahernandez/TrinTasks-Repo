@@ -12,6 +12,7 @@ import {
   mergeCompletionStatus,
   togglePinAssignment,
   toggleAssignmentComplete,
+  toggleAssignmentInProgress,
   listenForStorageChanges,
   refreshLocally,
   clearAllReminderAlarms,
@@ -107,6 +108,7 @@ export class UIController {
 
     this.eventRenderer = new EventRenderer({
       onToggleComplete: (event, element) => this.handleToggleComplete(event, element),
+      onToggleInProgress: (event, element) => this.handleToggleInProgress(event, element),
       onTogglePin: (event, pinBtn) => this.handleTogglePin(event, pinBtn),
       getSubjectFromTitle: (title) => this.getSubjectFromTitle(title),
       themeManager: this.themeManager
@@ -126,7 +128,9 @@ export class UIController {
       majorListDiv: this.majorListDiv,
       showMajorAssignmentsCheckbox: this.showMajorAssignmentsCheckbox,
       onUnpin: (eventId) => this.handleUnpin(eventId),
-      onNavigateToDate: (date) => this.navigateToDate(date)
+      onNavigateToDate: (date) => this.navigateToDate(date),
+      onToggleComplete: (event, element) => this.handleSidebarToggleComplete(event, element),
+      onToggleInProgress: (event, element) => this.handleSidebarToggleInProgress(event, element)
     });
 
     this.setupEventListeners();
@@ -395,6 +399,118 @@ export class UIController {
     }
   }
 
+  async handleSidebarToggleComplete(event, itemElement) {
+    const result = await toggleAssignmentComplete(event);
+    event.isCompleted = result.isCompleted;
+    event.completedDate = result.completedDate;
+    event.isInProgress = false;
+
+    // Update the sidebar item visually
+    if (itemElement) {
+      const checkbox = itemElement.querySelector('.sidebar-checkbox');
+      const inProgressBtn = itemElement.querySelector('.sidebar-in-progress');
+      if (result.isCompleted) {
+        itemElement.classList.add('completed');
+        itemElement.classList.remove('in-progress');
+        if (checkbox) {
+          checkbox.classList.add('checked');
+          checkbox.innerHTML = '✓';
+          checkbox.title = 'Mark incomplete';
+        }
+        if (inProgressBtn) {
+          inProgressBtn.classList.remove('active');
+          inProgressBtn.title = 'Mark in-progress';
+        }
+      } else {
+        itemElement.classList.remove('completed');
+        if (checkbox) {
+          checkbox.classList.remove('checked');
+          checkbox.innerHTML = '';
+          checkbox.title = 'Mark complete';
+        }
+      }
+    }
+
+    // Re-render main views to stay in sync
+    this.weekViewController.renderWeekView();
+    this.showEventsForSelectedDay();
+  }
+
+  async handleToggleInProgress(event, eventElement) {
+    const result = await toggleAssignmentInProgress(event);
+    event.isInProgress = result.isInProgress;
+    event.inProgressDate = result.inProgressDate;
+    event.isCompleted = false;
+    event.completedDate = null;
+
+    // Update the event element visually
+    if (eventElement) {
+      const inProgressBtn = eventElement.querySelector('.in-progress-btn');
+      const checkbox = eventElement.querySelector('.event-checkbox');
+
+      if (result.isInProgress) {
+        eventElement.classList.add('in-progress');
+        eventElement.classList.remove('completed');
+        if (inProgressBtn) {
+          inProgressBtn.classList.add('active');
+          inProgressBtn.title = 'Remove in-progress';
+        }
+        if (checkbox) {
+          checkbox.checked = false;
+        }
+      } else {
+        eventElement.classList.remove('in-progress');
+        if (inProgressBtn) {
+          inProgressBtn.classList.remove('active');
+          inProgressBtn.title = 'Mark in-progress';
+        }
+      }
+    }
+
+    // Re-render views to update counts and styling
+    this.weekViewController.renderWeekView();
+    this.showEventsForSelectedDay();
+    this.sidebar.update();
+  }
+
+  async handleSidebarToggleInProgress(event, itemElement) {
+    const result = await toggleAssignmentInProgress(event);
+    event.isInProgress = result.isInProgress;
+    event.inProgressDate = result.inProgressDate;
+    event.isCompleted = false;
+    event.completedDate = null;
+
+    // Update the sidebar item visually
+    if (itemElement) {
+      const inProgressBtn = itemElement.querySelector('.sidebar-in-progress');
+      const checkbox = itemElement.querySelector('.sidebar-checkbox');
+
+      if (result.isInProgress) {
+        itemElement.classList.add('in-progress');
+        itemElement.classList.remove('completed');
+        if (inProgressBtn) {
+          inProgressBtn.classList.add('active');
+          inProgressBtn.title = 'Remove in-progress';
+        }
+        if (checkbox) {
+          checkbox.classList.remove('checked');
+          checkbox.innerHTML = '';
+          checkbox.title = 'Mark complete';
+        }
+      } else {
+        itemElement.classList.remove('in-progress');
+        if (inProgressBtn) {
+          inProgressBtn.classList.remove('active');
+          inProgressBtn.title = 'Mark in-progress';
+        }
+      }
+    }
+
+    // Re-render main views to stay in sync
+    this.weekViewController.renderWeekView();
+    this.showEventsForSelectedDay();
+  }
+
   async handleTogglePin(event, pinBtn) {
     const result = await togglePinAssignment(event, this.pinnedAssignments);
     this.pinnedAssignments = result.pinnedAssignments;
@@ -457,7 +573,7 @@ export class UIController {
       // Don't re-render during completion animation
       if (this.isAnimating) return;
 
-      const eventsChanged = changes.events || changes.completedAssignments || changes.icalUrl;
+      const eventsChanged = changes.events || changes.completedAssignments || changes.inProgressAssignments || changes.icalUrl;
       if (eventsChanged) {
         await this.updateEventsFromStorage();
       }
@@ -480,13 +596,13 @@ export class UIController {
 
   async updateEventsFromStorage() {
     try {
-      const data = await chrome.storage.local.get(['events', 'completedAssignments', 'icalUrl', 'pinnedAssignments']);
+      const data = await chrome.storage.local.get(['events', 'completedAssignments', 'inProgressAssignments', 'icalUrl', 'pinnedAssignments']);
       if (data.icalUrl) {
         this.icalLinkInput.value = data.icalUrl;
         this.settingsIcalLink.value = data.icalUrl;
       }
       this.pinnedAssignments = data.pinnedAssignments || {};
-      const merged = mergeCompletionStatus(data.events || [], data.completedAssignments);
+      const merged = mergeCompletionStatus(data.events || [], data.completedAssignments, data.inProgressAssignments);
       if (merged.length > 0) {
         this.displayEvents(merged);
       }
