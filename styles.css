@@ -113,6 +113,7 @@ h2 {
 .header-buttons {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .settings-btn {
@@ -126,6 +127,113 @@ h2 {
   cursor: pointer;
   transition: all 0.1s ease;
   box-shadow: var(--shadow-sm);
+}
+
+/* Weather Selector - Easter egg feature */
+.weather-selector {
+  position: relative;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  box-shadow: var(--shadow-sm);
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.weather-selector.hidden {
+  display: none;
+}
+
+.weather-selector:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+
+#weatherIcon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.weather-options {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.15s ease;
+  max-width: 0;
+  overflow: hidden;
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+.weather-selector:hover .weather-options {
+  opacity: 1;
+  pointer-events: auto;
+  max-width: 200px;
+  margin-left: 10px;
+  gap: 6px;
+}
+
+.weather-options button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 2px 2px 0 var(--black);
+}
+
+.weather-options button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--black);
+}
+
+.weather-options button.selected {
+  box-shadow: 0 0 0 var(--black);
+  transform: translate(1px, 1px);
+}
+
+/* Weather button backgrounds and icon colors */
+.weather-options button[data-weather="clear"] {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.weather-options button[data-weather="rain"] {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.weather-options button[data-weather="snow"] {
+  background: #e0f2fe;
+  color: #0891b2;
+}
+
+.weather-options button[data-weather="storm"] {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+.weather-options button[data-weather="leaves"] {
+  background: #ffedd5;
+  color: #c2410c;
 }
 
 .settings-btn:hover {
@@ -1274,7 +1382,6 @@ button:active {
 .swatch-slate { background: #64748b; }
 .swatch-orchid { background: #a855f7; }
 .swatch-midnight { background: #1c2541; }
-.swatch-serenity { background: #7cb7ff; }
 
 /* Subject Tags */
 .subject-tags-container {
@@ -1950,47 +2057,337 @@ body.theme-midnight .event.completing {
   border-color: #fbbf24;
 }
 
-/* Serenity Theme - Calm sky blue palette */
-body.theme-serenity {
-  --accent: #7cb7ff;
-  --accent-hover: #4a90e2;
-  --accent-contrast: #1a1f2e;
+body.theme-midnight .easter-egg-content {
+  background: var(--surface);
+  border-color: var(--black);
 }
 
-body.theme-serenity .header {
-  background: #7cb7ff;
+body.theme-midnight .easter-egg-content h2 {
+  color: var(--text);
 }
 
-body.theme-serenity .week-view {
-  background: #dbeafe;
+body.theme-midnight .easter-egg-content p {
+  color: var(--text-muted);
 }
 
-body.theme-serenity .events-list-header {
-  background: #bfdbfe;
+body.theme-midnight .easter-egg-btn {
+  border-color: var(--black);
 }
 
-body.theme-serenity .major-assignments-bar {
-  background: #dbeafe;
+/* Weather Particles Container - Inside week-view */
+.week-view {
+  position: relative;
+  overflow: hidden;
 }
 
-body.theme-serenity .week-day-events {
-  background: #93c5fd;
+.weather-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+  display: none;
 }
 
-body.theme-serenity .settings-section:nth-child(1) {
-  background: #dbeafe;
+body.weather-enabled .weather-particles {
+  display: block;
 }
 
-body.theme-serenity .settings-section:nth-child(2) {
-  background: #bfdbfe;
+/* Weather Overlay - frost, snow accumulation effects */
+.weather-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 5;
+  transition: all 0.5s ease;
 }
 
-body.theme-serenity .settings-section:nth-child(3) {
-  background: #93c5fd;
+/* Clear/Sunny - warm golden glow */
+body.weather-enabled.weather-clear .weather-overlay {
+  background: linear-gradient(135deg, rgba(255, 220, 100, 0.15) 0%, transparent 60%);
+  box-shadow: inset 0 0 30px rgba(255, 200, 50, 0.1);
 }
 
-body.theme-serenity .settings-section:nth-child(4) {
-  background: #60a5fa;
+/* Rain - wet/dark overlay with drip effect at bottom */
+body.weather-enabled.weather-rain .weather-overlay {
+  background: linear-gradient(180deg, rgba(100, 150, 200, 0.1) 0%, rgba(80, 130, 180, 0.15) 100%);
+  box-shadow: inset 0 -3px 8px rgba(100, 150, 200, 0.3);
+}
+
+body.weather-enabled.weather-rain .week-view {
+  border-color: rgba(100, 150, 200, 0.5);
+}
+
+/* Snow - frost effect with snow accumulation at bottom */
+body.weather-enabled.weather-snow .weather-overlay {
+  background:
+    linear-gradient(180deg, transparent 88%, rgba(255, 255, 255, 0.35) 100%),
+    linear-gradient(135deg, rgba(200, 230, 255, 0.1) 0%, transparent 50%);
+  box-shadow:
+    inset 0 -4px 8px rgba(255, 255, 255, 0.4),
+    inset 0 0 15px rgba(200, 230, 255, 0.1);
+}
+
+body.weather-enabled.weather-snow .week-view::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 10%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0.6) 90%,
+    transparent 100%);
+  border-radius: var(--radius) var(--radius) 0 0;
+  z-index: 15;
+}
+
+/* Midnight theme - disable snow overlay effects (just show snowflakes) */
+body.theme-midnight.weather-enabled.weather-snow .weather-overlay {
+  background: none;
+  box-shadow: none;
+}
+
+body.theme-midnight.weather-enabled.weather-snow .week-view::before {
+  display: none;
+}
+
+/* Storm - darker, more dramatic */
+body.weather-enabled.weather-storm .weather-overlay {
+  background: linear-gradient(180deg, rgba(50, 60, 80, 0.2) 0%, rgba(30, 40, 60, 0.25) 100%);
+  box-shadow: inset 0 0 40px rgba(50, 80, 120, 0.2);
+  animation: stormFlicker 4s ease-in-out infinite;
+}
+
+body.weather-enabled.weather-storm .week-view {
+  border-color: rgba(80, 100, 140, 0.6);
+}
+
+@keyframes stormFlicker {
+  0%, 100% { opacity: 1; }
+  48% { opacity: 1; }
+  50% { opacity: 0.7; }
+  52% { opacity: 1; }
+  70% { opacity: 1; }
+  71% { opacity: 0.85; }
+  72% { opacity: 1; }
+}
+
+/* Leaves/Autumn - warm orange tint */
+body.weather-enabled.weather-leaves .weather-overlay {
+  background: linear-gradient(135deg, rgba(200, 120, 50, 0.1) 0%, rgba(180, 100, 40, 0.08) 100%);
+  box-shadow: inset 0 0 25px rgba(200, 130, 60, 0.1);
+}
+
+/* Base floating particle */
+.weather-particle {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Dust/Sun motes - gentle diagonal float */
+.weather-particle.dust {
+  width: 5px;
+  height: 5px;
+  background: radial-gradient(circle, rgba(255, 230, 150, 0.9), rgba(255, 200, 100, 0.4));
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 220, 100, 0.6);
+  animation: dustFloat 6s linear forwards;
+}
+
+.weather-particle.dust.v2 {
+  width: 4px;
+  height: 4px;
+}
+
+.weather-particle.dust.v3 {
+  width: 6px;
+  height: 6px;
+}
+
+.weather-particle.dust.v4 {
+  width: 3px;
+  height: 3px;
+}
+
+/* Rain drops - vertical with slight angle */
+.weather-particle.rain {
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(180deg, transparent 0%, rgba(150, 200, 255, 0.4) 30%, rgba(150, 200, 255, 0.8) 100%);
+  border-radius: 0 0 1px 1px;
+  animation: rainFall 0.7s linear forwards;
+}
+
+.weather-particle.rain.v2 {
+  width: 1.5px;
+  height: 15px;
+  animation-duration: 0.6s;
+}
+
+.weather-particle.rain.v3 {
+  width: 2px;
+  height: 25px;
+  animation-duration: 0.8s;
+}
+
+.weather-particle.rain.v4 {
+  width: 1.5px;
+  height: 18px;
+  animation-duration: 0.65s;
+}
+
+/* Snowflakes - using Unicode snowflake character via ::before */
+.weather-particle.snow {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 1;
+  color: white;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+  animation: snowDiagonal 3.5s linear forwards;
+}
+
+.weather-particle.snow::before {
+  content: '❄';
+}
+
+.weather-particle.snow.v2 {
+  font-size: 10px;
+  width: 10px;
+  height: 10px;
+}
+
+.weather-particle.snow.v2::before {
+  content: '❅';
+}
+
+.weather-particle.snow.v3 {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  text-shadow: 0 0 6px rgba(200, 230, 255, 0.9);
+}
+
+.weather-particle.snow.v3::before {
+  content: '❆';
+}
+
+.weather-particle.snow.v4 {
+  font-size: 12px;
+  width: 12px;
+  height: 12px;
+}
+
+.weather-particle.snow.v4::before {
+  content: '❄';
+}
+
+/* Autumn leaves - colorful and tumbling */
+.weather-particle.leaf {
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, #ff6b35, #c23616);
+  border-radius: 2px 50% 50% 50%;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.15);
+  animation: leafTumble 5s linear forwards;
+}
+
+.weather-particle.leaf.v2 {
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #f39c12, #d35400);
+}
+
+.weather-particle.leaf.v3 {
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, #e74c3c, #922b21);
+  border-radius: 50% 2px 50% 50%;
+}
+
+.weather-particle.leaf.v4 {
+  width: 9px;
+  height: 9px;
+  background: linear-gradient(135deg, #f1c40f, #e67e22);
+}
+
+/* Animations - smooth movement from top-left to bottom-right */
+@keyframes dustFloat {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(100px, 80px);
+    opacity: 0;
+  }
+}
+
+@keyframes rainFall {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 0.8;
+  }
+  95% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(180px) translateX(15px);
+    opacity: 0;
+  }
+}
+
+@keyframes snowDiagonal {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(60px, 120px) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+@keyframes leafTumble {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(80px, 120px) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 /* Pin Button */
@@ -2126,6 +2523,217 @@ body.theme-serenity .settings-section:nth-child(4) {
 
 .event.completed .event-link:hover {
   opacity: 1;
+}
+
+/* =====================================================
+   EASTER EGG
+   ===================================================== */
+
+/* Logo for easter egg interaction */
+#headerTitle {
+  cursor: default;
+  user-select: none;
+}
+
+body:not(.weather-unlocked) #headerTitle {
+  cursor: pointer;
+}
+
+body:not(.weather-unlocked) #headerTitle:hover #logoEgg:empty::before {
+  content: '|';
+  color: rgba(251, 191, 36, 0.5);
+  font-weight: 300;
+  animation: blink 1s step-end infinite;
+}
+
+#logoEgg {
+  display: inline;
+  font-size: inherit;
+  color: inherit;
+  position: relative;
+  min-width: 2px;
+}
+
+#logoEgg:not(:empty) {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.6), 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+}
+
+/* Caret indicator on hover */
+#logoEgg.caret-active::after {
+  content: '|';
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+  animation: blink 1s step-end infinite;
+  font-weight: 300;
+}
+
+#logoEgg:not(:empty).caret-active::after {
+  display: none;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Easter egg modal */
+.easter-egg-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.easter-egg-modal.hidden {
+  display: none;
+}
+
+.easter-egg-content {
+  background: var(--surface);
+  border: 3px solid var(--black);
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 8px 8px 0 var(--black);
+  animation: popIn 0.4s ease;
+}
+
+.easter-egg-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.easter-egg-content h2 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: var(--text);
+}
+
+.easter-egg-content p {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.easter-egg-btn {
+  background: var(--accent);
+  color: var(--accent-contrast, white);
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: all 0.15s ease;
+}
+
+.easter-egg-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.easter-egg-btn:active {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+/* Animated text for "fully" */
+.animated-text {
+  display: inline-block;
+  background: linear-gradient(90deg, var(--accent), #a855f7, #f97316, var(--accent));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s ease-in-out infinite;
+  font-weight: 700;
+  font-style: italic;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Confetti container */
+.easter-egg-confetti {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -20px;
+  animation: confetti-fall 3s ease-out forwards;
+}
+
+.confetti-piece:nth-child(odd) {
+  animation-duration: 2.5s;
+}
+
+.confetti-piece:nth-child(3n) {
+  width: 8px;
+  height: 14px;
+}
+
+.confetti-piece:nth-child(4n) {
+  width: 12px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+@keyframes confetti-fall {
+  0% {
+    top: -20px;
+    transform: translateX(0) rotateZ(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: translateX(30px) rotateZ(90deg);
+  }
+  50% {
+    transform: translateX(-20px) rotateZ(180deg);
+  }
+  75% {
+    transform: translateX(40px) rotateZ(270deg);
+  }
+  100% {
+    top: 100%;
+    transform: translateX(10px) rotateZ(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* =====================================================
@@ -2599,6 +3207,27 @@ body.ui-glass .setup-color-btn.selected {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
+/* Easter egg modal glass styling */
+body.ui-glass .easter-egg-content {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.2);
+}
+
+body.ui-glass .easter-egg-btn {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+body.ui-glass .easter-egg-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
 body.ui-glass .setup-submit-btn {
   background: linear-gradient(135deg, var(--accent), var(--accent-hover, var(--accent)));
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -2814,6 +3443,19 @@ body.ui-glass.theme-midnight .btn-primary {
 
 body.ui-glass.theme-midnight .btn-danger {
   color: #ef4444;
+}
+
+body.ui-glass.theme-midnight .easter-egg-content {
+  background: rgba(37, 43, 61, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+body.ui-glass.theme-midnight .easter-egg-content h2 {
+  color: #e2e8f0;
+}
+
+body.ui-glass.theme-midnight .easter-egg-content p {
+  color: #94a3b8;
 }
 
 body.ui-glass.theme-midnight .event-checkbox,

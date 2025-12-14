@@ -276,7 +276,9 @@ export async function loadSettings() {
     'theme',
     'uiStyle',
     'showMajorAssignmentsBar',
-    'subjectTags'
+    'subjectTags',
+    'weatherUnlocked',
+    'weather'
   ]);
 
   return {
@@ -286,7 +288,9 @@ export async function loadSettings() {
     theme: data.theme || 'slate',
     uiStyle: data.uiStyle || 'neobrutalism',
     showMajorAssignmentsBar: data.showMajorAssignmentsBar === true,
-    subjectTags: data.subjectTags || {}
+    subjectTags: data.subjectTags || {},
+    weatherUnlocked: data.weatherUnlocked === true,
+    weather: data.weather || 'clear'
   };
 }
 
@@ -307,6 +311,21 @@ export async function saveSettings(settings) {
     },
     showMajorAssignmentsBar: settings.showMajorAssignmentsBar
   });
+}
+
+/**
+ * Unlock weather effects (easter egg)
+ */
+export async function unlockWeather() {
+  await chrome.storage.local.set({ weatherUnlocked: true });
+}
+
+/**
+ * Save weather preference
+ * @param {string} weather - Weather type
+ */
+export async function saveWeather(weather) {
+  await chrome.storage.local.set({ weather });
 }
 
 /**

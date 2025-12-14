@@ -8,8 +8,18 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1 id="headerTitle">TrinTasks</h1>
+      <h1 id="headerTitle"><span id="logoTrin">Trin</span><span id="logoEgg"></span><span id="logoTasks">Tasks</span></h1>
       <div class="header-buttons">
+        <div id="weatherSelector" class="weather-selector hidden" title="Change weather">
+          <span id="weatherIcon">☀️</span>
+          <div id="weatherOptions" class="weather-options">
+            <button data-weather="clear" title="Sunny">☀️</button>
+            <button data-weather="rain" title="Rainy">🌧️</button>
+            <button data-weather="snow" title="Snowy">❄️</button>
+            <button data-weather="storm" title="Stormy">⛈️</button>
+            <button data-weather="leaves" title="Autumn Leaves">🍂</button>
+          </div>
+        </div>
         <button id="settingsBtn" class="settings-btn" title="Settings">Settings</button>
       </div>
     </div>
@@ -91,6 +101,8 @@
         <div class="left-column">
           <!-- Week View -->
           <div id="weekView" class="week-view">
+            <div id="weatherParticles" class="weather-particles"></div>
+            <div id="weatherOverlay" class="weather-overlay"></div>
             <div class="week-header">
               <button id="prevWeek" class="nav-btn">‹</button>
               <h2 id="weekTitle">This Week</h2>
@@ -213,9 +225,6 @@
             <button type="button" class="theme-pill" data-theme-option="midnight">
               <span class="swatch swatch-midnight"></span>Midnight
             </button>
-            <button type="button" class="theme-pill" data-theme-option="serenity">
-              <span class="swatch swatch-serenity"></span>Serenity (auto)
-            </button>
           </div>
         </div>
 
@@ -227,6 +236,17 @@
             <div id="subjectTags" class="subject-tags-container"></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Easter Egg Modal -->
+    <div id="easterEggModal" class="easter-egg-modal hidden">
+      <div class="easter-egg-confetti" id="easterEggConfetti"></div>
+      <div class="easter-egg-content">
+        <div class="easter-egg-icon">&#127881;</div>
+        <h2>You found an Easter Egg!</h2>
+        <p>You've unlocked <strong>Weather Effects</strong>! Use the weather button in the header to add <span class="animated-text">animated</span> particles like rain, snow, and falling leaves to any theme.</p>
+        <button id="easterEggClose" class="easter-egg-btn">Awesome!</button>
       </div>
     </div>
   </div>

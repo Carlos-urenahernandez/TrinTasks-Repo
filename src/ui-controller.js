@@ -18,7 +18,9 @@ import {
   clearAllData,
   loadSettings,
   saveSettings,
-  saveSubjectTags
+  saveSubjectTags,
+  unlockWeather,
+  saveWeather
 } from './storage-manager.js';
 
 export class UIController {
@@ -77,6 +79,18 @@ export class UIController {
     this.majorListDiv = document.getElementById('majorList');
     this.showMajorAssignmentsCheckbox = document.getElementById('showMajorAssignments');
 
+    // Easter egg elements
+    this.logoEgg = document.getElementById('logoEgg');
+    this.easterEggModal = document.getElementById('easterEggModal');
+    this.easterEggClose = document.getElementById('easterEggClose');
+    this.easterEggConfetti = document.getElementById('easterEggConfetti');
+
+    // Weather selector elements
+    this.weatherSelector = document.getElementById('weatherSelector');
+    this.weatherBtn = document.getElementById('weatherBtn');
+    this.weatherIcon = document.getElementById('weatherIcon');
+    this.weatherOptions = document.getElementById('weatherOptions');
+
     // State
     this.events = [];
     this.subjectTags = {};
@@ -85,6 +99,8 @@ export class UIController {
     this.filterMode = 'active'; // Default to showing uncompleted
     this.autoRefreshInterval = null;
     this.isAnimating = false; // Prevent re-render during animations
+    this.weatherUnlocked = false;
+    this.easterEggBuffer = '';
 
     // Initialize modules
     this.themeManager = new ThemeManager();
@@ -184,6 +200,7 @@ export class UIController {
           if (theme) {
             this.themeManager.applyTheme(theme);
             this.updateThemePillSelection();
+            this.updateWeatherSelectorVisibility();
             this.handleSaveSettings();
           }
         });
@@ -239,6 +256,29 @@ export class UIController {
         });
       });
     }
+
+    // Easter egg keyboard listener
+    this.setupEasterEgg();
+
+    // Easter egg modal close button
+    if (this.easterEggClose) {
+      this.easterEggClose.addEventListener('click', () => {
+        this.closeEasterEggModal();
+      });
+    }
+
+    // Close modal when clicking outside
+    if (this.easterEggModal) {
+      this.easterEggModal.addEventListener('click', (e) => {
+        if (e.target === this.easterEggModal) {
+          this.closeEasterEggModal();
+        }
+      });
+    }
+
+    // Weather selector event listeners
+    this.setupWeatherSelector();
+
   }
 
   async handleParse() {
@@ -513,12 +553,23 @@ export class UIController {
     this.settingsIcalLink.value = this.icalLinkInput.value;
     this.displaySubjectTags();
 
+    // Clear easter egg text when entering settings
+    if (this.logoEgg) {
+      this.logoEgg.textContent = '';
+      this.logoEgg.classList.remove('caret-active');
+    }
+    this.easterEggBuffer = '';
+    this.easterEggActive = false;
+
     this.mainView.classList.add('hidden');
     this.settingsView.classList.remove('hidden');
     this.headerTitle.textContent = '← Settings';
     this.headerTitle.style.cursor = 'pointer';
     this.settingsBtn.style.display = 'none';
     this.isSettingsView = true;
+
+    // Hide weather selector in settings view
+    this.updateWeatherSelectorVisibility();
   }
 
   closeSettings() {
@@ -530,10 +581,15 @@ export class UIController {
 
     this.settingsView.classList.add('hidden');
     this.mainView.classList.remove('hidden');
-    this.headerTitle.textContent = 'TrinTasks';
+    // Restore header with easter egg structure (no 'ity' visible after unlocking)
+    this.headerTitle.innerHTML = `<span id="logoTrin">Trin</span><span id="logoEgg"></span><span id="logoTasks">Tasks</span>`;
+    this.logoEgg = document.getElementById('logoEgg');
     this.headerTitle.style.cursor = 'default';
     this.settingsBtn.style.display = 'block';
     this.isSettingsView = false;
+
+    // Show weather selector if unlocked
+    this.updateWeatherSelectorVisibility();
   }
 
   async loadSettingsFromStorage() {
@@ -553,6 +609,21 @@ export class UIController {
     this.sidebar.toggleVisibility(settings.showMajorAssignmentsBar);
 
     this.subjectTags = settings.subjectTags;
+
+    // Check if weather effects are unlocked (easter egg)
+    this.weatherUnlocked = settings.weatherUnlocked;
+    if (this.weatherUnlocked) {
+      // Add body class to disable easter egg hover
+      document.body.classList.add('weather-unlocked');
+      // Enable weather effects
+      this.themeManager.enableWeather();
+      this.themeManager.setWeather(settings.weather);
+      this.updateWeatherIcon(settings.weather);
+      this.updateWeatherSelection(settings.weather);
+    }
+
+    // Update weather selector visibility
+    this.updateWeatherSelectorVisibility();
   }
 
   async handleSaveSettings() {
@@ -816,5 +887,218 @@ export class UIController {
 
   hideEventsList() {
     this.mainContent.classList.add('hidden');
+  }
+
+  // Easter egg methods
+  setupEasterEgg() {
+    // Track if easter egg input is active
+    this.easterEggActive = false;
+
+    // Click on logo to activate easter egg input
+    if (this.headerTitle) {
+      this.headerTitle.addEventListener('click', (e) => {
+        if (this.weatherUnlocked || this.isSettingsView) return;
+
+        // Activate easter egg input mode
+        this.easterEggActive = true;
+        if (this.logoEgg) {
+          this.logoEgg.classList.add('caret-active');
+        }
+        e.stopPropagation();
+      });
+    }
+
+    // Click elsewhere to deactivate
+    document.addEventListener('click', (e) => {
+      if (this.easterEggActive && !this.headerTitle.contains(e.target)) {
+        this.deactivateEasterEggInput();
+      }
+    });
+
+    // Keyboard input for easter egg
+    document.addEventListener('keydown', (e) => {
+      // Only listen when easter egg input is active and not already unlocked
+      if (!this.easterEggActive || this.weatherUnlocked) {
+        return;
+      }
+
+      // Only accept letter keys
+      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+        // Add character to buffer
+        this.easterEggBuffer += e.key.toLowerCase();
+
+        // Keep only last 3 characters
+        if (this.easterEggBuffer.length > 3) {
+          this.easterEggBuffer = this.easterEggBuffer.slice(-3);
+        }
+
+        // Update the logo display
+        this.updateLogoDisplay();
+
+        // Check for easter egg trigger
+        if (this.easterEggBuffer === 'ity') {
+          this.triggerEasterEgg();
+        }
+      } else if (e.key === 'Backspace') {
+        // Allow backspace to delete
+        this.easterEggBuffer = this.easterEggBuffer.slice(0, -1);
+        this.updateLogoDisplay();
+      } else if (e.key === 'Escape') {
+        // Escape to deactivate
+        this.deactivateEasterEggInput();
+      }
+    });
+  }
+
+  deactivateEasterEggInput() {
+    this.easterEggActive = false;
+    // Only clear if not the correct answer
+    if (this.easterEggBuffer !== 'ity') {
+      this.easterEggBuffer = '';
+      if (this.logoEgg) {
+        this.logoEgg.textContent = '';
+        this.logoEgg.classList.remove('caret-active');
+      }
+    } else {
+      // Keep 'ity' visible but remove caret
+      if (this.logoEgg) {
+        this.logoEgg.classList.remove('caret-active');
+      }
+    }
+  }
+
+  updateLogoDisplay() {
+    if (!this.logoEgg) return;
+
+    // Show typed characters in the logo
+    const target = 'ity';
+    const matches = target.startsWith(this.easterEggBuffer);
+    if (matches || this.easterEggBuffer === '') {
+      this.logoEgg.textContent = this.easterEggBuffer;
+    }
+    // If doesn't match, still show what they typed (they can backspace)
+    else {
+      this.logoEgg.textContent = this.easterEggBuffer;
+    }
+  }
+
+  async triggerEasterEgg() {
+    // Keep 'ity' in the logo
+    if (this.logoEgg) {
+      this.logoEgg.textContent = 'ity';
+      this.logoEgg.classList.remove('caret-active');
+    }
+    this.easterEggActive = false;
+
+    // Mark as unlocked
+    this.weatherUnlocked = true;
+    await unlockWeather();
+
+    // Add body class to disable easter egg hover
+    document.body.classList.add('weather-unlocked');
+
+    // Enable weather effects
+    this.themeManager.enableWeather();
+
+    // Show weather selector
+    this.updateWeatherSelectorVisibility();
+
+    // Generate confetti
+    this.generateConfetti();
+
+    // Show the modal
+    if (this.easterEggModal) {
+      this.easterEggModal.classList.remove('hidden');
+    }
+  }
+
+  generateConfetti() {
+    if (!this.easterEggConfetti) return;
+
+    // Clear any existing confetti
+    this.easterEggConfetti.innerHTML = '';
+
+    // Get theme colors for confetti
+    const colors = this.themeManager.getThemeConfettiColors();
+    const fallbackColors = ['#f97316', '#a855f7', '#0ea5e9', '#34d399', '#f472b6', '#fbbf24'];
+    const confettiColors = colors.length > 0 ? colors : fallbackColors;
+
+    // Generate confetti pieces
+    for (let i = 0; i < 50; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = `${Math.random() * 100}%`;
+      piece.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+      piece.style.animationDelay = `${Math.random() * 0.5}s`;
+      piece.style.animationDuration = `${2 + Math.random() * 1.5}s`;
+      this.easterEggConfetti.appendChild(piece);
+    }
+  }
+
+  closeEasterEggModal() {
+    if (this.easterEggModal) {
+      this.easterEggModal.classList.add('hidden');
+    }
+
+    // Keep 'ity' visible - it only disappears when going to settings or closing extension
+
+    // Clear confetti
+    if (this.easterEggConfetti) {
+      this.easterEggConfetti.innerHTML = '';
+    }
+  }
+
+  // Weather selector methods
+  setupWeatherSelector() {
+    if (!this.weatherOptions) return;
+
+    // Weather option selection (hover-based dropdown, click to select)
+    this.weatherOptions.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const weather = btn.getAttribute('data-weather');
+        if (weather) {
+          // Update selected state
+          this.weatherOptions.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+
+          this.themeManager.setWeather(weather);
+          this.updateWeatherIcon(weather);
+          // Save preference
+          await saveWeather(weather);
+        }
+      });
+    });
+  }
+
+  updateWeatherIcon(weather) {
+    if (!this.weatherIcon) return;
+    const icons = {
+      clear: '☀',
+      rain: '🌧',
+      snow: '❄',
+      storm: '⛈',
+      leaves: '🍂'
+    };
+    this.weatherIcon.innerHTML = icons[weather] || '☀';
+  }
+
+  updateWeatherSelection(weather) {
+    if (!this.weatherOptions) return;
+    this.weatherOptions.querySelectorAll('button').forEach(btn => {
+      const btnWeather = btn.getAttribute('data-weather');
+      btn.classList.toggle('selected', btnWeather === weather);
+    });
+  }
+
+  updateWeatherSelectorVisibility() {
+    if (!this.weatherSelector) return;
+
+    // Show weather selector if unlocked and not in settings view
+    if (this.weatherUnlocked && !this.isSettingsView) {
+      this.weatherSelector.classList.remove('hidden');
+    } else {
+      this.weatherSelector.classList.add('hidden');
+    }
   }
 }
