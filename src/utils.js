@@ -50,28 +50,37 @@ export function linkifyText(text) {
 export function getCleanTitle(title) {
   if (!title) return '';
 
+  // Helper to clean trailing standalone numbers (like page numbers "Assignment 123")
+  // but NOT numbers in a list/sequence (like "59, 60, 61" or "Problems 1-5")
+  const cleanTrailingNumber = (str) => {
+    // Only remove if it's a standalone number at the end (not preceded by comma, dash, or another digit)
+    // This preserves: "59, 60, 61", "1-5", "Chapter 3"
+    // But removes: "Assignment 12345" (5+ digit numbers likely to be IDs)
+    return str.replace(/\s+\d{5,}$/, '').trim();
+  };
+
   // Pattern: optional "ADV. ", class name with optional subtitle/semester, " - SECTION: ", then content
   const cleanMatch = title.match(/^(?:ADV\.\s+)?[A-Z][A-Z0-9\s:\/]+-\s*[A-Z0-9]+:\s*(.+)$/i);
   if (cleanMatch) {
-    return cleanMatch[1].trim().replace(/\s+\d+$/, '').trim();
+    return cleanTrailingNumber(cleanMatch[1].trim());
   }
 
   // Fallback: split on last colon to handle titles that have multiple colons
   const lastColon = title.lastIndexOf(':');
   if (lastColon !== -1 && lastColon < title.length - 1) {
     const after = title.substring(lastColon + 1).trim();
-    return after.replace(/\s+\d+$/, '').trim();
+    return cleanTrailingNumber(after);
   }
 
   // Another fallback: split on the first ' - ' occurrence
   const dashIdx = title.indexOf(' - ');
   if (dashIdx !== -1 && dashIdx < title.length - 1) {
     const after = title.substring(dashIdx + 3).trim();
-    return after.replace(/\s+\d+$/, '').trim();
+    return cleanTrailingNumber(after);
   }
 
-  // Final fallback: trim trailing numeric suffixes
-  return title.replace(/\s+\d+$/, '').trim();
+  // Final fallback: only remove very long trailing numbers (likely IDs)
+  return cleanTrailingNumber(title);
 }
 
 /**

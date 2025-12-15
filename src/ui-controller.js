@@ -46,7 +46,21 @@ export class UIController {
     this.weekDays = document.getElementById('weekDays');
     this.prevWeekBtn = document.getElementById('prevWeek');
     this.nextWeekBtn = document.getElementById('nextWeek');
+    this.todayBtn = document.getElementById('todayBtn');
     this.selectedDayTitle = document.getElementById('selectedDayTitle');
+
+    // Custom assignment elements
+    this.addCustomBtn = document.getElementById('addCustomBtn');
+    this.customAssignmentModal = document.getElementById('customAssignmentModal');
+    this.customTitleInput = document.getElementById('customTitle');
+    this.customDueDateInput = document.getElementById('customDueDate');
+    this.customDueTimeInput = document.getElementById('customDueTime');
+    this.customCourseSelect = document.getElementById('customCourse');
+    this.addNewCourseBtn = document.getElementById('addNewCourseBtn');
+    this.customNewCourseInput = document.getElementById('customNewCourse');
+    this.customDescriptionInput = document.getElementById('customDescription');
+    this.customSaveBtn = document.getElementById('customSaveBtn');
+    this.customCancelBtn = document.getElementById('customCancelBtn');
 
     // Header elements
     this.headerTitle = document.getElementById('headerTitle');
@@ -157,6 +171,32 @@ export class UIController {
     });
     this.prevWeekBtn.addEventListener('click', () => this.weekViewController.navigateWeek(-1));
     this.nextWeekBtn.addEventListener('click', () => this.weekViewController.navigateWeek(1));
+
+    // Today button
+    if (this.todayBtn) {
+      this.todayBtn.addEventListener('click', () => this.jumpToToday());
+    }
+
+    // Custom assignment handlers
+    if (this.addCustomBtn) {
+      this.addCustomBtn.addEventListener('click', () => this.openCustomAssignmentModal());
+    }
+    if (this.addNewCourseBtn) {
+      this.addNewCourseBtn.addEventListener('click', () => this.toggleNewCourseInput());
+    }
+    if (this.customCancelBtn) {
+      this.customCancelBtn.addEventListener('click', () => this.closeCustomAssignmentModal());
+    }
+    if (this.customSaveBtn) {
+      this.customSaveBtn.addEventListener('click', () => this.handleSaveCustomAssignment());
+    }
+    if (this.customAssignmentModal) {
+      this.customAssignmentModal.addEventListener('click', (e) => {
+        if (e.target.classList.contains('custom-assignment-overlay')) {
+          this.closeCustomAssignmentModal();
+        }
+      });
+    }
 
     // Settings event listeners
     this.settingsBtn.addEventListener('click', () => this.openSettings());
@@ -363,6 +403,128 @@ export class UIController {
       pinnedAssignments: this.pinnedAssignments,
       sidebarEnabled
     });
+  }
+
+  jumpToToday() {
+    const today = new Date();
+    this.navigateToDate(today);
+  }
+
+  openCustomAssignmentModal() {
+    if (this.customAssignmentModal) {
+      this.customAssignmentModal.classList.remove('hidden');
+      // Set default date to today
+      const today = new Date().toISOString().split('T')[0];
+      this.customDueDateInput.value = today;
+      // Populate course dropdown
+      this.populateCourseDropdown();
+      // Focus on title input
+      this.customTitleInput.focus();
+    }
+  }
+
+  populateCourseDropdown() {
+    // Clear existing options (except first)
+    while (this.customCourseSelect.options.length > 1) {
+      this.customCourseSelect.remove(1);
+    }
+
+    // Add courses from subjectTags
+    const courses = Object.keys(this.subjectTags).sort();
+    courses.forEach(course => {
+      const option = document.createElement('option');
+      option.value = course;
+      option.textContent = course;
+      this.customCourseSelect.appendChild(option);
+    });
+  }
+
+  toggleNewCourseInput() {
+    if (this.customNewCourseInput.classList.contains('hidden')) {
+      // Show new course input
+      this.customNewCourseInput.classList.remove('hidden');
+      this.customCourseSelect.value = '';
+      this.customNewCourseInput.focus();
+    } else {
+      // Hide new course input
+      this.customNewCourseInput.classList.add('hidden');
+      this.customNewCourseInput.value = '';
+      this.customCourseSelect.focus();
+    }
+  }
+
+  closeCustomAssignmentModal() {
+    if (this.customAssignmentModal) {
+      this.customAssignmentModal.classList.add('hidden');
+      // Clear form
+      this.customTitleInput.value = '';
+      this.customDueDateInput.value = '';
+      this.customDueTimeInput.value = '';
+      this.customCourseSelect.value = '';
+      this.customNewCourseInput.value = '';
+      this.customNewCourseInput.classList.add('hidden');
+      this.customDescriptionInput.value = '';
+    }
+  }
+
+  async handleSaveCustomAssignment() {
+    const title = this.customTitleInput.value.trim();
+    const dueDate = this.customDueDateInput.value;
+    const dueTime = this.customDueTimeInput.value;
+    let course = this.customCourseSelect.value.trim();
+    const newCourse = this.customNewCourseInput.value.trim();
+    const description = this.customDescriptionInput.value.trim();
+
+    // Use custom course if new one is being added
+    if (newCourse) {
+      course = newCourse;
+    }
+
+    if (!title || !dueDate) {
+      alert('Please enter an assignment title and due date');
+      return;
+    }
+
+    if (!course) {
+      alert('Please select or create a course');
+      return;
+    }
+
+    // Create a custom event object
+    const customEvent = {
+      uid: `custom_${Date.now()}`,
+      title: title,
+      dueRaw: dueDate,
+      dueTime: dueTime || null,
+      description: description,
+      isCustom: true,
+      isCompleted: false,
+      completedDate: null
+    };
+
+    // Add course as summary tag
+    customEvent.summary = course;
+    // Ensure course is in tags
+    if (!this.subjectTags[course]) {
+      this.subjectTags[course] = '#9333ea'; // Default purple color
+    }
+
+    // Add to events array
+    this.events.push(customEvent);
+
+    // Save to storage
+    await chrome.storage.local.set({
+      events: this.events,
+      subjectTags: this.subjectTags
+    });
+
+    // Update display
+    this.weekViewController.renderWeekView();
+    this.showEventsForSelectedDay();
+    this.closeCustomAssignmentModal();
+
+    // Show success message
+    this.eventRenderer.showRefreshToast({ added: 1, updated: 0, removed: 0, timestamp: Date.now() });
   }
 
   async handleToggleComplete(event, eventElement) {

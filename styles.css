@@ -615,6 +615,147 @@ button:active {
   box-shadow: var(--shadow);
 }
 
+/* Events Header Actions */
+.events-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.today-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.add-custom-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  border: var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.add-custom-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+
+/* Custom Assignment Modal */
+.custom-assignment-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.custom-assignment-modal.hidden {
+  display: none;
+}
+
+.custom-assignment-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.custom-assignment-form {
+  position: relative;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: var(--shadow);
+  z-index: 1;
+}
+
+.custom-assignment-form h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--black);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--black);
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.course-selection {
+  display: flex;
+  gap: 8px;
+}
+
+.course-selection select {
+  flex: 1;
+}
+
+.add-course-btn {
+  padding: 10px 14px;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.add-course-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.custom-course-input {
+  margin-top: 8px;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.form-buttons .btn-secondary,
+.form-buttons .btn-primary {
+  padding: 10px 20px;
+}
+
 /* Main Content */
 .main-content {
   flex: 1;
@@ -2162,6 +2303,58 @@ body.theme-midnight .nav-btn {
   border-color: #cbd5e1;
 }
 
+body.theme-midnight .today-btn {
+  background: #334155;
+  border: 1px solid #475569;
+  color: #e5ecf5;
+}
+
+body.theme-midnight .today-btn:hover {
+  background: #3f4e63;
+  border-color: #64748b;
+}
+
+body.theme-midnight .add-custom-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+body.theme-midnight .custom-assignment-form {
+  background: #252b3d;
+  border-color: #475569;
+}
+
+body.theme-midnight .custom-assignment-form h3 {
+  color: #e5ecf5;
+}
+
+body.theme-midnight .form-group label {
+  color: #cbd5e1;
+}
+
+body.theme-midnight .form-group input,
+body.theme-midnight .form-group select,
+body.theme-midnight .form-group textarea {
+  background: #1a1f2e;
+  border-color: #475569;
+  color: #e5ecf5;
+}
+
+body.theme-midnight .form-group input::placeholder,
+body.theme-midnight .form-group textarea::placeholder {
+  color: #64748b;
+}
+
+body.theme-midnight .add-course-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #e5ecf5;
+}
+
+body.theme-midnight .custom-assignment-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
 body.theme-midnight .no-data,
 body.theme-midnight .no-events-message {
   color: #94a3b8;
@@ -3403,6 +3596,76 @@ body.ui-glass .pin-btn.pinned {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+/* Glass: Today button */
+body.ui-glass .today-btn {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
+}
+
+body.ui-glass .today-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Glass: Add custom button */
+body.ui-glass .add-custom-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover, var(--accent)));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s ease;
+}
+
+body.ui-glass .add-custom-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* Glass: Custom assignment modal */
+body.ui-glass .custom-assignment-form {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+}
+
+body.ui-glass .custom-assignment-overlay {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+body.ui-glass .form-group input,
+body.ui-glass .form-group select,
+body.ui-glass .form-group textarea {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+body.ui-glass .btn-secondary {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+body.ui-glass .add-course-btn {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+body.ui-glass .add-course-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
 /* Glass Scrollbar */
 body.ui-glass ::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.3);
@@ -3620,6 +3883,69 @@ body.ui-glass.theme-midnight ::-webkit-scrollbar-track {
 body.ui-glass.theme-midnight ::-webkit-scrollbar-thumb {
   background: rgba(51, 65, 85, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Glass midnight: Today button */
+body.ui-glass.theme-midnight .today-btn {
+  background: rgba(51, 65, 85, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+body.ui-glass.theme-midnight .today-btn:hover {
+  background: rgba(71, 85, 105, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Glass midnight: Add custom button */
+body.ui-glass.theme-midnight .add-custom-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover, var(--accent)));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Glass midnight: Custom assignment modal */
+body.ui-glass.theme-midnight .custom-assignment-form {
+  background: rgba(37, 43, 61, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+body.ui-glass.theme-midnight .custom-assignment-form h3 {
+  color: #e2e8f0;
+}
+
+body.ui-glass.theme-midnight .form-group label {
+  color: #cbd5e1;
+}
+
+body.ui-glass.theme-midnight .form-group input,
+body.ui-glass.theme-midnight .form-group select,
+body.ui-glass.theme-midnight .form-group textarea {
+  background: rgba(51, 65, 85, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+body.ui-glass.theme-midnight .form-group input::placeholder,
+body.ui-glass.theme-midnight .form-group textarea::placeholder {
+  color: #64748b;
+}
+
+body.ui-glass.theme-midnight .custom-assignment-overlay {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+body.ui-glass.theme-midnight .btn-secondary {
+  background: rgba(51, 65, 85, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+body.ui-glass.theme-midnight .add-course-btn {
+  background: rgba(51, 65, 85, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
 }
 
 /* UI Style Selector Styles */
