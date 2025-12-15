@@ -275,7 +275,8 @@ export async function loadSettings() {
     'reminderSettings',
     'theme',
     'showMajorAssignmentsBar',
-    'subjectTags'
+    'subjectTags',
+    'uiStyle'
   ]);
 
   return {
@@ -284,7 +285,8 @@ export async function loadSettings() {
     reminderHours: (data.reminderSettings && data.reminderSettings.hours) || data.reminderHours || 24,
     theme: data.theme || 'fern',
     showMajorAssignmentsBar: data.showMajorAssignmentsBar === true,
-    subjectTags: data.subjectTags || {}
+    subjectTags: data.subjectTags || {},
+    uiStyle: data.uiStyle || 'simple'
   };
 }
 
@@ -302,7 +304,8 @@ export async function saveSettings(settings) {
       enabled: settings.enableReminders,
       hours: settings.reminderHours
     },
-    showMajorAssignmentsBar: settings.showMajorAssignmentsBar
+    showMajorAssignmentsBar: settings.showMajorAssignmentsBar,
+    uiStyle: settings.uiStyle
   });
 }
 

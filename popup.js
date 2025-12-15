@@ -3,6 +3,9 @@
 
 import { UIController } from './src/ui-controller.js';
 
+// Apply default simple UI style immediately to prevent FOUC
+document.body.classList.add('ui-simple');
+
 // Initialize the UI when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, initializing UIController...');

@@ -83,11 +83,11 @@
         <div class="left-column">
           <!-- Week View -->
           <div id="weekView" class="week-view">
-            <div class="week-header">
-              <button id="prevWeek" class="nav-btn">‹</button>
-              <h2 id="weekTitle">This Week</h2>
-              <button id="nextWeek" class="nav-btn">›</button>
-            </div>
+          <div class="week-header">
+            <button id="prevWeek" class="nav-btn">‹</button>
+            <h2 id="weekTitle">This Week</h2>
+            <button id="nextWeek" class="nav-btn">›</button>
+          </div>
             <div id="weekDays" class="week-days"></div>
           </div>
 
@@ -95,15 +95,58 @@
           <div id="eventsList" class="events-list">
             <div class="events-list-header">
               <h2 id="selectedDayTitle">Today's Assignments</h2>
-              <div class="filter-select" id="filterSelect" title="Filter assignments">
-                <div class="filter-current" id="filterCurrent">All</div>
-                <div class="filter-options" id="filterOptions">
-                  <button data-mode="all">All</button>
-                  <button data-mode="active">Uncompleted</button>
-                  <button data-mode="completed">Completed</button>
+              <div class="events-header-actions">
+                <button id="todayBtn" class="nav-btn today-btn" title="Jump to today">Today</button>
+                <button id="addCustomBtn" class="add-custom-btn" title="Add custom assignment">+ Add</button>
+                <div class="filter-select" id="filterSelect" title="Filter assignments">
+                  <div class="filter-current" id="filterCurrent">All</div>
+                  <div class="filter-options" id="filterOptions">
+                    <button data-mode="all">All</button>
+                    <button data-mode="active">Uncompleted</button>
+                    <button data-mode="completed">Completed</button>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <!-- Custom Assignment Modal -->
+            <div id="customAssignmentModal" class="custom-assignment-modal hidden">
+              <div class="custom-assignment-form">
+                <h3>Add Custom Assignment</h3>
+                <div class="form-group">
+                  <label for="customTitle">Assignment Title</label>
+                  <input type="text" id="customTitle" placeholder="Enter assignment title" />
+                </div>
+                <div class="form-group">
+                  <label for="customDueDate">Due Date</label>
+                  <input type="date" id="customDueDate" />
+                </div>
+                <div class="form-group">
+                  <label for="customDueTime">Due Time (optional)</label>
+                  <input type="time" id="customDueTime" />
+                </div>
+                <div class="form-group">
+                  <label for="customCourse">Course</label>
+                  <div class="course-selection">
+                    <select id="customCourse">
+                      <option value="">Select a course...</option>
+                    </select>
+                    <button id="addNewCourseBtn" class="add-course-btn" title="Add new course">+</button>
+                  </div>
+                  <input type="text" id="customNewCourse" class="custom-course-input hidden" placeholder="Enter new course name" />
+                </div>
+                <div class="form-group">
+                  <label for="customDescription">Description (optional)</label>
+                  <textarea id="customDescription" placeholder="Add any notes..."></textarea>
+                </div>
+                <div class="form-buttons">
+                  <button id="customCancelBtn" class="btn-secondary">Cancel</button>
+                  <button id="customSaveBtn" class="btn-primary">Add Assignment</button>
+                </div>
+              </div>
+              <div class="custom-assignment-overlay"></div>
+            </div>
+
             <div id="eventsContainer" class="events-container"></div>
           </div>
         </div>
@@ -167,6 +210,20 @@
                 <span>Show "Major assignments" side bar</span>
               </label>
             </div>
+          </div>
+        </div>
+
+        <!-- Theme Section -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">UI Style</h3>
+          <p class="settings-hint">Choose your interface style</p>
+          <div class="settings-group ui-style-options" id="uiStyleOptions">
+            <button type="button" class="ui-style-pill" data-ui-style="simple">
+              <span class="ui-style-icon">✓</span>Simple
+            </button>
+            <button type="button" class="ui-style-pill" data-ui-style="neo-brutalist">
+              <span class="ui-style-icon">✓</span>Neo-Brutalist
+            </button>
           </div>
         </div>
 
