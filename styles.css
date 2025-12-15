@@ -2870,13 +2870,6 @@ body:not(.weather-unlocked) #headerTitle {
   cursor: pointer;
 }
 
-body:not(.weather-unlocked) #headerTitle:hover #logoEgg:empty::before {
-  content: '|';
-  color: rgba(251, 191, 36, 0.5);
-  font-weight: 300;
-  animation: blink 1s step-end infinite;
-}
-
 #logoEgg {
   display: inline;
   font-size: inherit;
