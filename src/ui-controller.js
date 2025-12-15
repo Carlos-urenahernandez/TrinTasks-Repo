@@ -134,7 +134,8 @@ export class UIController {
       selectedDayTitle: this.selectedDayTitle,
       eventsContainer: this.eventsContainer,
       onDaySelect: () => this.showEventsForSelectedDay(),
-      getEventsForDate: (date) => getEventsForDate(this.events, date)
+      getEventsForDate: (date) => getEventsForDate(this.events, date),
+      onWeekChange: (showTodayBtn) => this.updateTodayButtonVisibility(showTodayBtn)
     });
 
     this.sidebar = new Sidebar({
@@ -408,6 +409,17 @@ export class UIController {
   jumpToToday() {
     const today = new Date();
     this.navigateToDate(today);
+    this.updateTodayButtonVisibility(false);
+  }
+
+  updateTodayButtonVisibility(show) {
+    if (this.todayBtn) {
+      if (show) {
+        this.todayBtn.classList.remove('hidden');
+      } else {
+        this.todayBtn.classList.add('hidden');
+      }
+    }
   }
 
   openCustomAssignmentModal() {

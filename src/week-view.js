@@ -13,10 +13,33 @@ export class WeekView {
     this.eventsContainer = options.eventsContainer;
     this.onDaySelect = options.onDaySelect || (() => {});
     this.getEventsForDate = options.getEventsForDate || (() => []);
+    this.onWeekChange = options.onWeekChange || (() => {});
     this.filterMode = 'active'; // Default to showing uncompleted assignments
 
     this.currentWeekStart = getWeekStart(new Date());
     this.selectedDate = new Date();
+  }
+
+  /**
+   * Check if currently viewing the week that contains today
+   * @returns {boolean}
+   */
+  isViewingCurrentWeek() {
+    const today = new Date();
+    const todayWeekStart = getWeekStart(today);
+    return this.currentWeekStart.getTime() === todayWeekStart.getTime();
+  }
+
+  /**
+   * Check if the selected date is today
+   * @returns {boolean}
+   */
+  isSelectedDateToday() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(this.selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    return today.getTime() === selected.getTime();
   }
 
   /**
@@ -28,6 +51,7 @@ export class WeekView {
     newDate.setDate(newDate.getDate() + (direction * 7));
     this.currentWeekStart = newDate;
     this.renderWeekView();
+    this.onWeekChange(!this.isSelectedDateToday());
   }
 
   /**
@@ -104,6 +128,7 @@ export class WeekView {
         this.selectedDate = date;
         this.renderWeekView();
         this.onDaySelect(date);
+        this.onWeekChange(!this.isSelectedDateToday());
       });
 
       this.weekDays.appendChild(dayDiv);
