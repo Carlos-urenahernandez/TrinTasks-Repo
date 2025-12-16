@@ -20,6 +20,7 @@
             <button data-weather="leaves" title="Autumn Leaves">🍂</button>
           </div>
         </div>
+        <button id="weekViewBtn" class="header-btn week-view-btn" title="Show all week's assignments">Week</button>
         <button id="settingsBtn" class="settings-btn" title="Settings">Settings</button>
       </div>
     </div>
@@ -129,45 +130,16 @@
               </div>
             </div>
 
-            <!-- Custom Assignment Modal -->
-            <div id="customAssignmentModal" class="custom-assignment-modal hidden">
-              <div class="custom-assignment-form">
-                <h3>Add Custom Assignment</h3>
-                <div class="form-group">
-                  <label for="customTitle">Assignment Title</label>
-                  <input type="text" id="customTitle" placeholder="Enter assignment title" />
-                </div>
-                <div class="form-group">
-                  <label for="customDueDate">Due Date</label>
-                  <input type="date" id="customDueDate" />
-                </div>
-                <div class="form-group">
-                  <label for="customDueTime">Due Time (optional)</label>
-                  <input type="time" id="customDueTime" />
-                </div>
-                <div class="form-group">
-                  <label for="customCourse">Course</label>
-                  <div class="course-selection">
-                    <select id="customCourse">
-                      <option value="">Select a course...</option>
-                    </select>
-                    <button id="addNewCourseBtn" class="add-course-btn" title="Add new course">+</button>
-                  </div>
-                  <input type="text" id="customNewCourse" class="custom-course-input hidden" placeholder="Enter new course name" />
-                </div>
-                <div class="form-group">
-                  <label for="customDescription">Description (optional)</label>
-                  <textarea id="customDescription" placeholder="Add any notes..."></textarea>
-                </div>
-                <div class="form-buttons">
-                  <button id="customCancelBtn" class="btn-secondary">Cancel</button>
-                  <button id="customSaveBtn" class="btn-primary">Add Assignment</button>
-                </div>
-              </div>
-              <div class="custom-assignment-overlay"></div>
-            </div>
-
             <div id="eventsContainer" class="events-container"></div>
+          </div>
+
+          <!-- Week Assignments View (all week's assignments) -->
+          <div id="weekAssignmentsView" class="week-assignments-view hidden">
+            <div class="week-assignments-header">
+              <h2 id="weekAssignmentsTitle">This Week's Assignments</h2>
+              <button id="dayViewBtn" class="view-toggle-btn" title="Back to day view">Day View</button>
+            </div>
+            <div id="weekAssignmentsContainer" class="week-assignments-container"></div>
           </div>
         </div>
 
@@ -278,6 +250,44 @@
           <div class="settings-group">
             <div id="subjectTags" class="subject-tags-container"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Assignment Modal -->
+    <div id="customAssignmentModal" class="custom-assignment-modal hidden">
+      <div class="custom-assignment-overlay"></div>
+      <div class="custom-assignment-form">
+        <h3>Add Custom Assignment</h3>
+        <div class="form-group">
+          <label for="customTitle">Assignment Title</label>
+          <input type="text" id="customTitle" placeholder="Enter assignment title" />
+        </div>
+        <div class="form-group">
+          <label for="customDueDate">Due Date</label>
+          <input type="date" id="customDueDate" />
+        </div>
+        <div class="form-group">
+          <label for="customDueTime">Due Time (optional)</label>
+          <input type="time" id="customDueTime" />
+        </div>
+        <div class="form-group">
+          <label for="customCourse">Course</label>
+          <div class="course-selection">
+            <select id="customCourse">
+              <option value="">Select a course...</option>
+            </select>
+            <button id="addNewCourseBtn" class="add-course-btn" title="Add new course">+</button>
+          </div>
+          <input type="text" id="customNewCourse" class="custom-course-input hidden" placeholder="Enter new course name" />
+        </div>
+        <div class="form-group">
+          <label for="customDescription">Description (optional)</label>
+          <textarea id="customDescription" placeholder="Add any notes..."></textarea>
+        </div>
+        <div class="form-buttons">
+          <button id="customCancelBtn" class="btn-secondary">Cancel</button>
+          <button id="customSaveBtn" class="btn-primary">Add Assignment</button>
         </div>
       </div>
     </div>

@@ -65,6 +65,13 @@ export class UIController {
     // Header elements
     this.headerTitle = document.getElementById('headerTitle');
     this.settingsBtn = document.getElementById('settingsBtn');
+    this.weekViewBtn = document.getElementById('weekViewBtn');
+
+    // Week assignments view elements
+    this.weekAssignmentsView = document.getElementById('weekAssignmentsView');
+    this.weekAssignmentsContainer = document.getElementById('weekAssignmentsContainer');
+    this.weekAssignmentsTitle = document.getElementById('weekAssignmentsTitle');
+    this.dayViewBtn = document.getElementById('dayViewBtn');
 
     // View elements
     this.mainView = document.getElementById('mainView');
@@ -111,6 +118,7 @@ export class UIController {
     this.subjectTags = {};
     this.pinnedAssignments = {};
     this.isSettingsView = false;
+    this.isWeekAssignmentsView = false; // Toggle between day view and week assignments view
     this.filterMode = 'active'; // Default to showing uncompleted
     this.autoRefreshInterval = null;
     this.isAnimating = false; // Prevent re-render during animations
@@ -135,7 +143,13 @@ export class UIController {
       eventsContainer: this.eventsContainer,
       onDaySelect: () => this.showEventsForSelectedDay(),
       getEventsForDate: (date) => getEventsForDate(this.events, date),
-      onWeekChange: (showTodayBtn) => this.updateTodayButtonVisibility(showTodayBtn)
+      onWeekChange: (showTodayBtn) => {
+        this.updateTodayButtonVisibility(showTodayBtn);
+        // Also refresh week assignments view if active
+        if (this.isWeekAssignmentsView) {
+          this.populateWeekAssignments();
+        }
+      }
     });
 
     this.sidebar = new Sidebar({
@@ -178,6 +192,20 @@ export class UIController {
       this.todayBtn.addEventListener('click', () => this.jumpToToday());
     }
 
+    // Week assignments view toggle
+    if (this.weekViewBtn) {
+      this.weekViewBtn.addEventListener('click', () => {
+        if (this.isWeekAssignmentsView) {
+          this.showDayView();
+        } else {
+          this.showWeekAssignmentsView();
+        }
+      });
+    }
+    if (this.dayViewBtn) {
+      this.dayViewBtn.addEventListener('click', () => this.showDayView());
+    }
+
     // Custom assignment handlers
     if (this.addCustomBtn) {
       this.addCustomBtn.addEventListener('click', () => this.openCustomAssignmentModal());
@@ -201,11 +229,7 @@ export class UIController {
 
     // Settings event listeners
     this.settingsBtn.addEventListener('click', () => this.openSettings());
-    this.headerTitle.addEventListener('click', () => {
-      if (this.isSettingsView) {
-        this.closeSettings();
-      }
-    });
+    // Note: Header title click for closing settings is handled in setupEasterEgg()
     if (this.refreshCalendarBtn) {
       this.refreshCalendarBtn.addEventListener('click', () => this.handleManualRefresh());
     }
@@ -410,6 +434,132 @@ export class UIController {
     const today = new Date();
     this.navigateToDate(today);
     this.updateTodayButtonVisibility(false);
+  }
+
+  showWeekAssignmentsView() {
+    this.isWeekAssignmentsView = true;
+    // Hide day view elements
+    if (this.eventsList) {
+      this.eventsList.classList.add('hidden');
+    }
+    // Show week assignments view
+    if (this.weekAssignmentsView) {
+      this.weekAssignmentsView.classList.remove('hidden');
+    }
+    // Update button states and text
+    if (this.weekViewBtn) {
+      this.weekViewBtn.classList.add('active');
+      this.weekViewBtn.textContent = 'Day';
+      this.weekViewBtn.title = 'Show daily assignments';
+    }
+    // Populate the week assignments
+    this.populateWeekAssignments();
+  }
+
+  showDayView() {
+    this.isWeekAssignmentsView = false;
+    // Show day view elements
+    if (this.eventsList) {
+      this.eventsList.classList.remove('hidden');
+    }
+    // Hide week assignments view
+    if (this.weekAssignmentsView) {
+      this.weekAssignmentsView.classList.add('hidden');
+    }
+    // Update button states and text
+    if (this.weekViewBtn) {
+      this.weekViewBtn.classList.remove('active');
+      this.weekViewBtn.textContent = 'Week';
+      this.weekViewBtn.title = "Show all week's assignments";
+    }
+    // Refresh day view
+    this.showEventsForSelectedDay();
+  }
+
+  populateWeekAssignments() {
+    if (!this.weekAssignmentsContainer) return;
+
+    this.weekAssignmentsContainer.innerHTML = '';
+
+    // Get all events for the current week
+    const weekStart = this.weekViewController.currentWeekStart;
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    // Update the title with the week date range
+    if (this.weekAssignmentsTitle) {
+      const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
+      const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
+      const startDay = weekStart.getDate();
+      const endDay = weekEnd.getDate();
+
+      if (startMonth === endMonth) {
+        this.weekAssignmentsTitle.textContent = `${startMonth} ${startDay} - ${endDay}`;
+      } else {
+        this.weekAssignmentsTitle.textContent = `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+      }
+    }
+
+    // Collect all events for the week with their dates
+    const allEvents = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(date.getDate() + i);
+
+      let eventsForDay = getEventsForDate(this.events, date);
+
+      // Apply filter
+      if (this.filterMode === 'completed') {
+        eventsForDay = eventsForDay.filter(e => e.isCompleted);
+      } else if (this.filterMode === 'active') {
+        eventsForDay = eventsForDay.filter(e => !e.isCompleted);
+      }
+
+      eventsForDay.forEach(event => {
+        allEvents.push({ event, date: new Date(date) });
+      });
+    }
+
+    if (allEvents.length === 0) {
+      const noEvents = document.createElement('div');
+      noEvents.className = 'week-no-events';
+      noEvents.textContent = 'No assignments this week';
+      this.weekAssignmentsContainer.appendChild(noEvents);
+      return;
+    }
+
+    // Group events by day for display with day headers
+    let currentDayStr = null;
+
+    allEvents.forEach(({ event, date }) => {
+      const dateNorm = new Date(date);
+      dateNorm.setHours(0, 0, 0, 0);
+      const isToday = dateNorm.getTime() === today.getTime();
+      const dayStr = date.toDateString();
+
+      // Add day header if new day
+      if (dayStr !== currentDayStr) {
+        currentDayStr = dayStr;
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'week-list-day-header';
+        if (isToday) {
+          dayHeader.classList.add('today');
+        }
+
+        const dayName = isToday ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        dayHeader.innerHTML = `<span class="day-name">${dayName}</span><span class="day-date">${dateStr}</span>`;
+        this.weekAssignmentsContainer.appendChild(dayHeader);
+      }
+
+      // Add event
+      const eventElement = this.eventRenderer.createEventElement(event);
+      this.weekAssignmentsContainer.appendChild(eventElement);
+    });
   }
 
   updateTodayButtonVisibility(show) {
@@ -617,7 +767,7 @@ export class UIController {
     event.isCompleted = false;
     event.completedDate = null;
 
-    // Update the event element visually
+    // Update the event element visually (without full re-render)
     if (eventElement) {
       const inProgressBtn = eventElement.querySelector('.in-progress-btn');
       const checkbox = eventElement.querySelector('.event-checkbox');
@@ -641,9 +791,8 @@ export class UIController {
       }
     }
 
-    // Re-render views to update counts and styling
+    // Only update the week view counts (not full re-render of events)
     this.weekViewController.renderWeekView();
-    this.showEventsForSelectedDay();
     this.sidebar.update();
   }
 
@@ -718,7 +867,11 @@ export class UIController {
     this.weekViewController.setFilterMode(mode);
     const label = mode === 'active' ? 'Uncompleted' : mode === 'completed' ? 'Completed' : 'All';
     if (this.filterCurrent) this.filterCurrent.textContent = label;
-    this.showEventsForSelectedDay();
+    if (this.isWeekAssignmentsView) {
+      this.populateWeekAssignments();
+    } else {
+      this.showEventsForSelectedDay();
+    }
   }
 
   // Storage methods
@@ -856,6 +1009,9 @@ export class UIController {
     this.headerTitle.textContent = '← Settings';
     this.headerTitle.style.cursor = 'pointer';
     this.settingsBtn.style.display = 'none';
+    if (this.weekViewBtn) {
+      this.weekViewBtn.style.display = 'none';
+    }
     this.isSettingsView = true;
 
     // Hide weather selector in settings view
@@ -876,6 +1032,9 @@ export class UIController {
     this.logoEgg = document.getElementById('logoEgg');
     this.headerTitle.style.cursor = 'default';
     this.settingsBtn.style.display = 'block';
+    if (this.weekViewBtn) {
+      this.weekViewBtn.style.display = 'block';
+    }
     this.isSettingsView = false;
 
     // Show weather selector if unlocked
@@ -1184,10 +1343,17 @@ export class UIController {
     // Track if easter egg input is active
     this.easterEggActive = false;
 
-    // Click on logo to activate easter egg input
+    // Click on logo to activate easter egg input OR close settings
     if (this.headerTitle) {
       this.headerTitle.addEventListener('click', (e) => {
-        if (this.weatherUnlocked || this.isSettingsView) return;
+        // If in settings view, close settings and do nothing else
+        if (this.isSettingsView) {
+          this.closeSettings();
+          return;
+        }
+
+        // Don't activate easter egg if already unlocked
+        if (this.weatherUnlocked) return;
 
         // Activate easter egg input mode
         this.easterEggActive = true;
