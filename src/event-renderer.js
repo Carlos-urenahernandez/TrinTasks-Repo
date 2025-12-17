@@ -9,11 +9,22 @@ export class EventRenderer {
     this.onToggleComplete = options.onToggleComplete || (() => {});
     this.onToggleInProgress = options.onToggleInProgress || (() => {});
     this.onTogglePin = options.onTogglePin || (() => {});
+    this.onSetReminder = options.onSetReminder || (() => {});
+    this.onClearReminder = options.onClearReminder || (() => {});
     this.getSubjectFromTitle = options.getSubjectFromTitle || (() => null);
+    this.getAssignmentReminderStatus = options.getAssignmentReminderStatus || (() => Promise.resolve({ hasReminder: false }));
     this.pinnedAssignments = options.pinnedAssignments || {};
     this.sidebarEnabled = options.sidebarEnabled || false;
     this.themeManager = options.themeManager || null;
     this.toastTimeout = null;
+    this.activeMenu = null; // Track currently open menu
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (this.activeMenu && !e.target.closest('.action-menu-container')) {
+        this.closeActiveMenu();
+      }
+    });
   }
 
   /**
@@ -22,6 +33,210 @@ export class EventRenderer {
    */
   updateOptions(options) {
     Object.assign(this, options);
+  }
+
+  /**
+   * Close the currently active menu
+   */
+  closeActiveMenu() {
+    if (this.activeMenu) {
+      const dropdown = this.activeMenu.querySelector('.action-dropdown');
+      if (dropdown) {
+        dropdown.remove();
+      }
+      this.activeMenu.classList.remove('menu-open');
+
+      // Remove menu-active class from parent event card
+      const parentEvent = this.activeMenu.closest('.event');
+      if (parentEvent) {
+        parentEvent.classList.remove('menu-active');
+      }
+
+      // Re-enable pointer events on all event cards
+      document.querySelectorAll('.event').forEach(el => {
+        el.style.pointerEvents = '';
+      });
+
+      this.activeMenu = null;
+    }
+  }
+
+  /**
+   * Toggle the action menu for an event
+   * @param {HTMLElement} menuContainer - The menu container element
+   * @param {Object} event - Event data
+   * @param {HTMLElement} eventDiv - The event card element
+   */
+  async toggleActionMenu(menuContainer, event, eventDiv) {
+    // If clicking the same menu that's open, close it
+    if (this.activeMenu === menuContainer) {
+      this.closeActiveMenu();
+      return;
+    }
+
+    // Close any other open menu
+    this.closeActiveMenu();
+
+    // Create dropdown menu
+    const dropdown = document.createElement('div');
+    dropdown.className = 'action-dropdown';
+
+    const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+    const isPinned = !!this.pinnedAssignments[eventId];
+
+    // Mark Complete / Incomplete
+    const completeItem = document.createElement('button');
+    completeItem.type = 'button';
+    completeItem.className = 'action-dropdown-item';
+    completeItem.innerHTML = event.isCompleted
+      ? '<span class="action-icon">○</span> Mark Incomplete'
+      : '<span class="action-icon">✓</span> Mark Complete';
+    completeItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeActiveMenu();
+      this.onToggleComplete(event, eventDiv);
+    });
+    dropdown.appendChild(completeItem);
+
+    // Mark In-Progress / Remove In-Progress
+    const inProgressItem = document.createElement('button');
+    inProgressItem.type = 'button';
+    inProgressItem.className = 'action-dropdown-item';
+    inProgressItem.innerHTML = event.isInProgress
+      ? '<span class="action-icon">○</span> Remove In-Progress'
+      : '<span class="action-icon">◐</span> Mark In-Progress';
+    inProgressItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeActiveMenu();
+      this.onToggleInProgress(event, eventDiv);
+    });
+    dropdown.appendChild(inProgressItem);
+
+    // Pin to Sidebar (only if sidebar is enabled)
+    if (this.sidebarEnabled) {
+      const pinItem = document.createElement('button');
+      pinItem.type = 'button';
+      pinItem.className = 'action-dropdown-item';
+      pinItem.innerHTML = isPinned
+        ? '<span class="action-icon">✕</span> Unpin from Sidebar'
+        : '<span class="action-icon">📌</span> Pin to Sidebar';
+      pinItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeActiveMenu();
+        this.onTogglePin(event, eventDiv);
+      });
+      dropdown.appendChild(pinItem);
+    }
+
+    // Divider
+    const divider = document.createElement('div');
+    divider.className = 'action-dropdown-divider';
+    dropdown.appendChild(divider);
+
+    // Reminder submenu
+    const reminderStatus = await this.getAssignmentReminderStatus(event);
+    const reminderItem = document.createElement('div');
+    reminderItem.className = 'action-dropdown-item has-submenu';
+
+    if (reminderStatus.hasReminder) {
+      // Show when reminder is set
+      const reminderTime = new Date(reminderStatus.reminderTime);
+      const timeStr = reminderTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      reminderItem.innerHTML = `<span class="submenu-arrow">◂</span> <span class="action-icon">🔔</span> Reminder at ${timeStr}`;
+    } else {
+      reminderItem.innerHTML = '<span class="submenu-arrow">◂</span> <span class="action-icon">⏰</span> Set Reminder';
+    }
+
+    // Submenu for reminder presets
+    const submenu = document.createElement('div');
+    submenu.className = 'action-submenu';
+
+    if (reminderStatus.hasReminder) {
+      // Option to clear reminder
+      const clearItem = document.createElement('button');
+      clearItem.type = 'button';
+      clearItem.className = 'action-dropdown-item';
+      clearItem.innerHTML = '<span class="action-icon">✕</span> Clear Reminder';
+      clearItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeActiveMenu();
+        this.onClearReminder(event);
+      });
+      submenu.appendChild(clearItem);
+
+      // Divider
+      const subDivider = document.createElement('div');
+      subDivider.className = 'action-dropdown-divider';
+      submenu.appendChild(subDivider);
+    }
+
+    // Preset options
+    const presets = [
+      { label: '1 hour', hours: 1 },
+      { label: '2 hours', hours: 2 },
+      { label: '4 hours', hours: 4 },
+      { label: 'Tomorrow', hours: 24 }
+    ];
+
+    presets.forEach(preset => {
+      const presetItem = document.createElement('button');
+      presetItem.type = 'button';
+      presetItem.className = 'action-dropdown-item';
+      presetItem.textContent = preset.label;
+      presetItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeActiveMenu();
+        this.onSetReminder(event, preset.hours);
+      });
+      submenu.appendChild(presetItem);
+    });
+
+    reminderItem.appendChild(submenu);
+    dropdown.appendChild(reminderItem);
+
+    // Add dropdown to container
+    menuContainer.appendChild(dropdown);
+    menuContainer.classList.add('menu-open');
+    this.activeMenu = menuContainer;
+
+    // Add menu-active class to parent event card and disable pointer events on other cards
+    const parentEvent = eventDiv;
+    parentEvent.classList.add('menu-active');
+
+    // Disable pointer events on all other event cards to prevent interference
+    document.querySelectorAll('.event').forEach(el => {
+      if (el !== parentEvent) {
+        el.style.pointerEvents = 'none';
+      }
+    });
+
+    // Position the dropdown
+    this.positionDropdown(menuContainer, dropdown);
+  }
+
+  /**
+   * Position the dropdown menu to avoid overflow
+   * @param {HTMLElement} container - Menu container
+   * @param {HTMLElement} dropdown - Dropdown element
+   */
+  positionDropdown(container, dropdown) {
+    const rect = container.getBoundingClientRect();
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    // Check if dropdown would overflow left edge (since it opens from the right)
+    if (rect.right - dropdownRect.width < 10) {
+      dropdown.style.left = '0';
+      dropdown.style.right = 'auto';
+    }
+
+    // Check if dropdown would overflow bottom edge
+    if (rect.bottom + dropdownRect.height > viewportHeight - 10) {
+      dropdown.style.bottom = '100%';
+      dropdown.style.top = 'auto';
+      dropdown.style.marginBottom = '4px';
+      dropdown.style.marginTop = '0';
+    }
   }
 
   /**
@@ -62,52 +277,7 @@ export class EventRenderer {
       ASSIGNMENT_KEYWORDS.test(event.title || '')
     );
 
-    if (inferredIsAssignment) {
-      // Status buttons container
-      const statusBtns = document.createElement('div');
-      statusBtns.className = 'event-status-btns';
-
-      // Checkbox for completion
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.className = 'event-checkbox';
-      checkbox.checked = event.isCompleted || false;
-      checkbox.title = event.isCompleted ? 'Mark incomplete' : 'Mark complete';
-      checkbox.addEventListener('change', () => this.onToggleComplete(event, eventDiv));
-      statusBtns.appendChild(checkbox);
-
-      // In-progress button
-      const inProgressBtn = document.createElement('button');
-      inProgressBtn.type = 'button';
-      inProgressBtn.className = 'in-progress-btn' + (event.isInProgress ? ' active' : '');
-      inProgressBtn.title = event.isInProgress ? 'Remove in-progress' : 'Mark in-progress';
-      inProgressBtn.innerHTML = '◐';
-      inProgressBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.onToggleInProgress(event, eventDiv);
-      });
-      statusBtns.appendChild(inProgressBtn);
-
-      headerDiv.appendChild(statusBtns);
-    }
-
-    // Add pin button (only visible when sidebar is enabled)
-    if (this.sidebarEnabled) {
-      const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
-      const isPinned = !!this.pinnedAssignments[eventId];
-
-      const pinBtn = document.createElement('button');
-      pinBtn.type = 'button';
-      pinBtn.className = 'pin-btn' + (isPinned ? ' pinned' : '');
-      pinBtn.title = isPinned ? 'Unpin from sidebar' : 'Pin to sidebar';
-      pinBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>';
-      pinBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.onTogglePin(event, pinBtn);
-      });
-      headerDiv.appendChild(pinBtn);
-    }
-
+    // Create title first (always)
     const titleDiv = document.createElement('div');
     titleDiv.className = 'event-title';
 
@@ -122,7 +292,30 @@ export class EventRenderer {
     if (event.isCompleted) {
       titleDiv.classList.add('title-completed');
     }
+
+    // Title first (far left)
     headerDiv.appendChild(titleDiv);
+
+    if (inferredIsAssignment) {
+      // Action menu container - after title (on the right)
+      const menuContainer = document.createElement('div');
+      menuContainer.className = 'action-menu-container';
+
+      // Action menu trigger button
+      const actionBtn = document.createElement('button');
+      actionBtn.type = 'button';
+      actionBtn.className = 'action-menu-btn';
+      actionBtn.title = 'Actions';
+      actionBtn.innerHTML = '⋮';
+      actionBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleActionMenu(menuContainer, event, eventDiv);
+      });
+      menuContainer.appendChild(actionBtn);
+
+      headerDiv.appendChild(menuContainer);
+    }
+
     eventDiv.appendChild(headerDiv);
 
     let html = '<div class="event-details">';
@@ -226,10 +419,7 @@ export class EventRenderer {
   animateCompletion(target) {
     if (!target) return;
     target.classList.add('completing');
-    const cb = target.querySelector('.event-checkbox');
-    if (cb) {
-      cb.classList.add('checked-anim');
-    }
+
     // Nudge the card slightly before it moves
     target.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
     target.style.transform = 'scale(0.99)';

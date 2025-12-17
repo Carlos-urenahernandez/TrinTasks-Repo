@@ -1275,6 +1275,13 @@ button:active {
   transition: all 0.1s ease;
   position: relative;
   box-shadow: var(--shadow-sm);
+  overflow: visible;
+  z-index: 1;
+}
+
+.event:has(.menu-open),
+.event.menu-active {
+  z-index: 500;
 }
 
 .event:hover {
@@ -1318,7 +1325,7 @@ button:active {
 .event-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
@@ -1831,65 +1838,42 @@ button:active {
 }
 
 .tag-color-input {
-  display: none;
-}
-
-.tag-color-indicator {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius);
-  flex-shrink: 0;
-  cursor: pointer;
-  border: 2px solid var(--black);
-  transition: all 0.1s ease;
-}
-
-.tag-color-indicator:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 2px 2px 0px var(--black);
-}
-
-.color-popover {
-  position: absolute;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 12px;
-  background: var(--surface);
-  border: var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  z-index: 100;
-  width: 200px;
-  top: 45px;
-  left: 0;
-}
-
-.color-swatch-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius);
-  border: 2px solid var(--black);
-  cursor: pointer;
-  transition: all 0.1s ease;
-}
-
-.color-swatch-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 2px 2px 0px var(--black);
-}
-
-.color-swatch-btn.custom {
-  flex: 1 1 100%;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 32px;
   height: 32px;
-  background: var(--accent);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  flex-shrink: 0;
+  transition: all 0.1s ease;
+}
+
+.tag-color-input::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.tag-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.tag-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.tag-color-input:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 2px 2px 0px var(--black);
+}
+
+.tag-color-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 .tag-name {
@@ -2409,6 +2393,14 @@ body.theme-midnight .subject-tags-container {
 body.theme-midnight .subject-tag-item {
   background: #334155;
   border-color: #cbd5e1;
+}
+
+body.theme-midnight .tag-color-input {
+  border-color: #cbd5e1;
+}
+
+body.theme-midnight .tag-name {
+  color: #e2e8f0;
 }
 
 body.theme-midnight .filter-select {
@@ -3693,6 +3685,20 @@ body.ui-glass .tag-name {
   color: #1f2937;
 }
 
+body.ui-glass .tag-color-input {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+
+body.ui-glass .tag-color-input:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.ui-glass .tag-color-input:focus {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 /* Glass Toast */
 body.ui-glass .refresh-toast {
   background: rgba(255, 255, 255, 0.85);
@@ -4122,6 +4128,14 @@ body.ui-glass.theme-midnight .tag-name {
   color: #e2e8f0;
 }
 
+body.ui-glass.theme-midnight .tag-color-input {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.ui-glass.theme-midnight .tag-color-input:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 /* Glass Midnight - Week day today and selected indicators */
 body.ui-glass.theme-midnight .week-day.today {
   background: rgba(var(--accent-rgb, 100, 116, 139), 0.3);
@@ -4312,4 +4326,308 @@ body.ui-glass.theme-midnight .ui-style-btn {
 
 body.ui-glass.theme-midnight .ui-style-btn.selected {
   color: white;
+}
+
+/* ===== ACTION MENU STYLES ===== */
+
+/* Action menu container (after title, on the right) */
+.action-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Action menu trigger button */
+.action-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  box-shadow: var(--shadow-sm);
+  line-height: 1;
+}
+
+.action-menu-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.action-menu-container.menu-open .action-menu-btn {
+  background: var(--accent);
+  color: white;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+
+/* Action dropdown menu */
+.action-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+/* Dropdown items */
+.action-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.1s ease;
+  position: relative;
+}
+
+.action-dropdown-item:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.action-dropdown-item:first-child {
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.action-dropdown-item:last-child {
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* Action icons */
+.action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  font-size: 14px;
+}
+
+/* Dropdown divider */
+.action-dropdown-divider {
+  height: 1px;
+  background: var(--black);
+  margin: 4px 0;
+  opacity: 0.2;
+}
+
+/* Submenu arrow */
+.submenu-arrow {
+  font-size: 10px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* Has submenu item */
+.action-dropdown-item.has-submenu {
+  position: relative;
+}
+
+/* Invisible bridge to keep hover when moving to submenu */
+.action-dropdown-item.has-submenu::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 0;
+  width: 20px;
+  height: 100%;
+  background: transparent;
+}
+
+/* Submenu */
+.action-submenu {
+  display: none;
+  position: absolute;
+  right: calc(100% + 4px);
+  top: -2px;
+  min-width: 140px;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 1002;
+  pointer-events: auto;
+}
+
+.action-dropdown-item.has-submenu:hover > .action-submenu {
+  display: block;
+}
+
+.action-submenu .action-dropdown-item:first-child {
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.action-submenu .action-dropdown-item:last-child {
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ===== GLASS THEME ACTION MENU ===== */
+
+body.ui-glass .action-menu-btn {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+body.ui-glass .action-menu-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+body.ui-glass .action-menu-container.menu-open .action-menu-btn {
+  background: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.ui-glass .action-dropdown {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+body.ui-glass .action-dropdown-item {
+  border-radius: 8px;
+  margin: 2px 4px;
+  width: calc(100% - 8px);
+}
+
+body.ui-glass .action-dropdown-item:hover {
+  background: var(--accent);
+}
+
+body.ui-glass .action-dropdown-item:first-child {
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+body.ui-glass .action-dropdown-item:last-child {
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+body.ui-glass .action-dropdown-divider {
+  background: rgba(0, 0, 0, 0.1);
+  margin: 4px 8px;
+}
+
+body.ui-glass .action-submenu {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ===== MIDNIGHT THEME ACTION MENU ===== */
+
+body.theme-midnight .action-menu-btn {
+  background: #334155;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+}
+
+body.theme-midnight .action-menu-btn:hover {
+  color: #e2e8f0;
+}
+
+body.theme-midnight .action-menu-container.menu-open .action-menu-btn {
+  background: var(--accent);
+  color: white;
+}
+
+body.theme-midnight .action-dropdown {
+  background: #1e293b;
+  border-color: #cbd5e1;
+}
+
+body.theme-midnight .action-dropdown-item {
+  color: #e2e8f0;
+}
+
+body.theme-midnight .action-dropdown-item:hover {
+  background: var(--accent);
+  color: white;
+}
+
+body.theme-midnight .action-dropdown-divider {
+  background: #475569;
+}
+
+body.theme-midnight .action-submenu {
+  background: #1e293b;
+  border-color: #cbd5e1;
+}
+
+/* ===== GLASS MIDNIGHT ACTION MENU ===== */
+
+body.ui-glass.theme-midnight .action-menu-btn {
+  background: rgba(51, 65, 85, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+}
+
+body.ui-glass.theme-midnight .action-menu-btn:hover {
+  background: rgba(71, 85, 105, 0.8);
+  color: #e2e8f0;
+}
+
+body.ui-glass.theme-midnight .action-menu-container.menu-open .action-menu-btn {
+  background: var(--accent);
+  color: white;
+}
+
+body.ui-glass.theme-midnight .action-dropdown {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+body.ui-glass.theme-midnight .action-dropdown-item {
+  color: #e2e8f0;
+}
+
+body.ui-glass.theme-midnight .action-dropdown-item:hover {
+  background: var(--accent);
+}
+
+body.ui-glass.theme-midnight .action-dropdown-divider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+body.ui-glass.theme-midnight .action-submenu {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }

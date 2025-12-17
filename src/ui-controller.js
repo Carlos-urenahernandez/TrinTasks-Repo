@@ -21,7 +21,10 @@ import {
   saveSettings,
   saveSubjectTags,
   unlockWeather,
-  saveWeather
+  saveWeather,
+  setAssignmentReminder,
+  clearAssignmentReminder,
+  getAssignmentReminderStatus
 } from './storage-manager.js';
 
 export class UIController {
@@ -131,8 +134,11 @@ export class UIController {
     this.eventRenderer = new EventRenderer({
       onToggleComplete: (event, element) => this.handleToggleComplete(event, element),
       onToggleInProgress: (event, element) => this.handleToggleInProgress(event, element),
-      onTogglePin: (event, pinBtn) => this.handleTogglePin(event, pinBtn),
+      onTogglePin: (event, element) => this.handleTogglePin(event, element),
+      onSetReminder: (event, hours) => this.handleSetReminder(event, hours),
+      onClearReminder: (event) => this.handleClearReminder(event),
       getSubjectFromTitle: (title) => this.getSubjectFromTitle(title),
+      getAssignmentReminderStatus: (event) => getAssignmentReminderStatus(event),
       themeManager: this.themeManager
     });
 
@@ -855,6 +861,35 @@ export class UIController {
     this.showEventsForSelectedDay();
   }
 
+  async handleSetReminder(event, hours) {
+    try {
+      const result = await setAssignmentReminder(event, hours);
+      if (result.success) {
+        const reminderTime = new Date(result.reminderTime);
+        const timeStr = reminderTime.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+        this.eventRenderer.showMessageToast(`Reminder set for ${timeStr}`);
+      }
+    } catch (error) {
+      console.error('Failed to set reminder:', error);
+      this.eventRenderer.showMessageToast('Failed to set reminder');
+    }
+  }
+
+  async handleClearReminder(event) {
+    try {
+      const result = await clearAssignmentReminder(event);
+      if (result.success) {
+        this.eventRenderer.showMessageToast('Reminder cleared');
+      }
+    } catch (error) {
+      console.error('Failed to clear reminder:', error);
+      this.eventRenderer.showMessageToast('Failed to clear reminder');
+    }
+  }
+
   navigateToDate(date) {
     this.weekViewController.selectDate(date);
     this.weekViewController.renderWeekView();
@@ -1214,31 +1249,16 @@ export class UIController {
       colorInput.type = 'color';
       colorInput.value = color;
       colorInput.className = 'tag-color-input';
+      colorInput.title = 'Click to change color';
       colorInput.addEventListener('input', (e) => {
         this.updateSubjectTagColor(name, e.target.value);
-        colorIndicator.style.backgroundColor = e.target.value;
       });
-
-      const colorIndicator = document.createElement('div');
-      colorIndicator.className = 'tag-color-indicator';
-      colorIndicator.style.backgroundColor = color;
-      colorIndicator.title = 'Click to change color';
-
-      const popover = this.buildColorPopover(name, colorInput, colorIndicator);
-      colorIndicator.addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('.color-popover').forEach(p => p.classList.add('hidden'));
-        popover.classList.toggle('hidden');
-      });
-      document.addEventListener('click', () => popover.classList.add('hidden'));
 
       const tagName = document.createElement('span');
       tagName.className = 'tag-name';
       tagName.textContent = name;
 
       tagDiv.appendChild(colorInput);
-      tagDiv.appendChild(colorIndicator);
-      tagDiv.appendChild(popover);
       tagDiv.appendChild(tagName);
       this.subjectTagsDiv.appendChild(tagDiv);
     });
@@ -1281,38 +1301,6 @@ export class UIController {
       hash = subject.charCodeAt(i) + ((hash << 5) - hash);
     }
     return DEFAULT_SUBJECT_COLORS[Math.abs(hash) % DEFAULT_SUBJECT_COLORS.length];
-  }
-
-  buildColorPopover(subjectName, colorInput, indicator) {
-    const popover = document.createElement('div');
-    popover.className = 'color-popover hidden';
-    const palette = this.themeManager.getThemePaletteColors();
-
-    palette.forEach(hex => {
-      const sw = document.createElement('button');
-      sw.type = 'button';
-      sw.className = 'color-swatch-btn';
-      sw.style.backgroundColor = hex;
-      sw.addEventListener('click', async () => {
-        indicator.style.backgroundColor = hex;
-        colorInput.value = hex;
-        await this.updateSubjectTagColor(subjectName, hex);
-        popover.classList.add('hidden');
-      });
-      popover.appendChild(sw);
-    });
-
-    const customBtn = document.createElement('button');
-    customBtn.type = 'button';
-    customBtn.className = 'color-swatch-btn custom';
-    customBtn.textContent = 'Custom';
-    customBtn.addEventListener('click', () => {
-      colorInput.click();
-      popover.classList.add('hidden');
-    });
-    popover.appendChild(customBtn);
-
-    return popover;
   }
 
   // UI helper methods

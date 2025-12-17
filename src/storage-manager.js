@@ -332,7 +332,7 @@ export async function loadSettings() {
 
   return {
     autoRefresh: data.autoRefresh || false,
-    enableReminders: data.enableReminders !== false,
+    enableReminders: data.enableReminders === true, // Default OFF
     reminderHours: (data.reminderSettings && data.reminderSettings.hours) || data.reminderHours || 24,
     theme: data.theme || 'slate',
     uiStyle: data.uiStyle || 'neobrutalism',
@@ -406,4 +406,91 @@ export async function loadEventOrder(dateKey) {
   const data = await chrome.storage.local.get(['eventOrder']);
   const eventOrder = data.eventOrder || {};
   return eventOrder[dateKey] || null;
+}
+
+/**
+ * Set a reminder for a specific assignment
+ * @param {Object} event - The event to set reminder for
+ * @param {number} hours - Hours from now to trigger reminder
+ * @returns {Promise<{success: boolean, reminderTime: number}>}
+ */
+export async function setAssignmentReminder(event, hours) {
+  const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+  const reminderTime = Date.now() + (hours * 60 * 60 * 1000);
+
+  // Load existing assignment reminders
+  const data = await chrome.storage.local.get(['assignmentReminders']);
+  const assignmentReminders = data.assignmentReminders || {};
+
+  // Store the reminder
+  assignmentReminders[eventId] = {
+    reminderTime,
+    hours,
+    title: event.title,
+    dueRaw: event.dueRaw,
+    createdAt: Date.now()
+  };
+
+  await chrome.storage.local.set({ assignmentReminders });
+
+  // Create a Chrome alarm for this specific reminder
+  const alarmName = `assignment_reminder_${eventId}`;
+  await chrome.alarms.create(alarmName, {
+    when: reminderTime
+  });
+
+  return { success: true, reminderTime };
+}
+
+/**
+ * Clear a reminder for a specific assignment
+ * @param {Object} event - The event to clear reminder for
+ * @returns {Promise<{success: boolean}>}
+ */
+export async function clearAssignmentReminder(event) {
+  const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+
+  // Load existing assignment reminders
+  const data = await chrome.storage.local.get(['assignmentReminders']);
+  const assignmentReminders = data.assignmentReminders || {};
+
+  // Remove the reminder
+  delete assignmentReminders[eventId];
+  await chrome.storage.local.set({ assignmentReminders });
+
+  // Clear the Chrome alarm
+  const alarmName = `assignment_reminder_${eventId}`;
+  await chrome.alarms.clear(alarmName);
+
+  return { success: true };
+}
+
+/**
+ * Get all assignment reminders
+ * @returns {Promise<Object>} Map of eventId to reminder data
+ */
+export async function getAssignmentReminders() {
+  const data = await chrome.storage.local.get(['assignmentReminders']);
+  return data.assignmentReminders || {};
+}
+
+/**
+ * Check if an assignment has a reminder set
+ * @param {Object} event - The event to check
+ * @returns {Promise<{hasReminder: boolean, reminderTime: number|null, hours: number|null}>}
+ */
+export async function getAssignmentReminderStatus(event) {
+  const eventId = event.uid || `${event.title}_${event.dueRaw || event.startRaw}`;
+  const data = await chrome.storage.local.get(['assignmentReminders']);
+  const assignmentReminders = data.assignmentReminders || {};
+
+  if (assignmentReminders[eventId]) {
+    return {
+      hasReminder: true,
+      reminderTime: assignmentReminders[eventId].reminderTime,
+      hours: assignmentReminders[eventId].hours
+    };
+  }
+
+  return { hasReminder: false, reminderTime: null, hours: null };
 }

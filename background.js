@@ -19,6 +19,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     await checkUpcomingAssignments();
   } else if (alarm.name === 'refreshCalendar') {
     await refreshCalendarData();
+  } else if (alarm.name.startsWith('assignment_reminder_')) {
+    await handleAssignmentReminderAlarm(alarm);
   } else if (alarm.name.startsWith('reminder_')) {
     await handleReminderAlarm(alarm);
   }
@@ -108,6 +110,96 @@ async function handleReminderAlarm(alarm) {
     await chrome.storage.local.set({
       lastNotificationResult: {
         status: 'error',
+        error: err.message || String(err),
+        timestamp: Date.now()
+      }
+    });
+  }
+}
+
+// Handle per-assignment reminder alarm (set from action menu)
+async function handleAssignmentReminderAlarm(alarm) {
+  console.log('handleAssignmentReminderAlarm called for:', alarm.name);
+
+  try {
+    // Extract eventId from alarm name: assignment_reminder_${eventId}
+    const eventId = alarm.name.replace('assignment_reminder_', '');
+
+    const data = await chrome.storage.local.get(['assignmentReminders']);
+    const assignmentReminders = data.assignmentReminders || {};
+    const reminder = assignmentReminders[eventId];
+
+    console.log('Assignment reminder data:', reminder);
+
+    if (reminder) {
+      // Get the icon URL
+      let iconUrl;
+      try {
+        iconUrl = chrome.runtime.getURL('icon-128.png');
+      } catch (e) {
+        console.warn('Failed to get icon URL:', e);
+        iconUrl = 'icon-128.png';
+      }
+
+      // Create notification
+      const notificationOptions = {
+        type: 'basic',
+        iconUrl: iconUrl,
+        title: 'TrinTasks - Assignment Reminder',
+        message: reminder.title || 'You have an upcoming assignment!',
+        priority: 2,
+        requireInteraction: true
+      };
+
+      console.log('Creating assignment reminder notification:', JSON.stringify(notificationOptions));
+
+      const notificationId = await new Promise((resolve, reject) => {
+        chrome.notifications.create(alarm.name, notificationOptions, (id) => {
+          const err = chrome.runtime.lastError;
+          if (err) {
+            console.error('Notification create error:', err.message);
+            reject(new Error(err.message));
+          } else {
+            console.log('Assignment reminder notification created with ID:', id);
+            resolve(id);
+          }
+        });
+      });
+
+      // Store success result
+      await chrome.storage.local.set({
+        lastNotificationResult: {
+          id: notificationId,
+          status: 'ok',
+          type: 'assignment_reminder',
+          error: null,
+          timestamp: Date.now(),
+          message: 'Assignment reminder notification displayed successfully'
+        }
+      });
+
+      // Remove the used reminder from storage
+      delete assignmentReminders[eventId];
+      await chrome.storage.local.set({ assignmentReminders });
+
+      console.log('Assignment reminder processed successfully');
+    } else {
+      console.warn('No assignment reminder data found for alarm:', alarm.name);
+      await chrome.storage.local.set({
+        lastNotificationResult: {
+          status: 'error',
+          type: 'assignment_reminder',
+          error: 'No reminder data found for alarm: ' + alarm.name,
+          timestamp: Date.now()
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Error handling assignment reminder alarm:', err);
+    await chrome.storage.local.set({
+      lastNotificationResult: {
+        status: 'error',
+        type: 'assignment_reminder',
         error: err.message || String(err),
         timestamp: Date.now()
       }
