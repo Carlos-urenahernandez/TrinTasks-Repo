@@ -1254,10 +1254,18 @@ export class UIController {
         this.updateSubjectTagColor(name, e.target.value);
       });
 
-      const tagName = document.createElement('span');
-      tagName.className = 'tag-name';
-      tagName.textContent = name;
-
+      const tagName = document.createElement('input');
+      tagName.type = 'text';
+      tagName.className = 'tag-name-input';
+      tagName.value = name;
+      tagNameInput.setAttribute('data-original-name', name)
+      tagName.addEventListener('blur',(e) => {
+        const newName = e.target.value.trim();
+        if (newName && newName !== name) {
+          this.renameSubjectTag(name, newName);
+        }
+      });
+      
       tagDiv.appendChild(colorInput);
       tagDiv.appendChild(tagName);
       this.subjectTagsDiv.appendChild(tagDiv);
@@ -1266,6 +1274,12 @@ export class UIController {
 
   async updateSubjectTagColor(name, color) {
     this.subjectTags[name] = color;
+    await saveSubjectTags(this.subjectTags);
+  }
+  async renameSubjectTag(oldName, newName) {
+    const color = this.subjectTags[oldName];
+    this.subjectTags[newName] = color
+    delete this.subjectTags[oldName];
     await saveSubjectTags(this.subjectTags);
   }
 

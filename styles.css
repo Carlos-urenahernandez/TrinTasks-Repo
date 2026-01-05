@@ -1883,6 +1883,19 @@ button:active {
   font-size: 13px;
 }
 
+.tag-name-input {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 4px 8px;
+  font-size: 14px;
+  flex: 1;
+}
+
+.tag-name-input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
 /* Toast */
 .refresh-toast {
   position: absolute;
